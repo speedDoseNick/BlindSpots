@@ -1,0 +1,35 @@
+const mapData = {
+  shapes: [
+    {
+      type: "rectangle",
+      position: { x: 100, y: 100 },
+      width: 50,
+      height: 30
+    },
+    {
+      type: "circle",
+      center: { x: 200, y: 150 },
+      radius: 20
+    },
+    {
+      type: "polygon",
+      points: [
+        { x: 0, y: 0 },
+        { x: 100, y: 0 },
+        { x: 50, y: 80 }
+      ]
+    }
+  ],
+  cameras: [
+    { x: 250, y: 100, angle: 90, fieldOfView: 70, range: 200 }
+  ]
+};
+
+-------------------------------------------
+
+Метод пост для отправки на бэкенд:
+await fetch('/api/map', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(mapData)
+});
