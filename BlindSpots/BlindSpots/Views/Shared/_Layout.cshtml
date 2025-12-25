@@ -11,26 +11,113 @@
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">BlindSpots</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
+        
     </header>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh; /* Занять всю высоту окна */
+            background-color: #f0f0f0; /* Цвет фона страницы */
+            position: relative;
+        }
+
+        .button-container {
+            position: fixed; /* Фиксированное положение */
+            right: 20px; /* Отступ от правого края */
+            top: 50%; /* Центрировать по вертикали */
+            transform: translateY(-50%); /* Сдвинуть на половину высоты контейнера */
+            display: flex;
+            flex-direction: column; /* Расположение кнопок сверху вниз */
+            gap: 10px; /* Промежуток между кнопками */
+        }
+
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            text-align: center;
+            padding: 12px 8px;
+            background: #fff;
+            z-index: 1000;
+        }
+
+        #scene {
+            position: absolute;
+            top: 80px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #eef;
+            overflow: hidden;
+        }
+
+        #hint {
+            position: fixed;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.75);
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 4px;
+            display: none;
+            z-index: 1100;
+        }
+
+        .button-container {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 1200;
+        }
+
+        .wall {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            transform: translate(-50%,-50%);
+            user-select: none;
+            pointer-events: auto;
+        }
+
+    </style>
+
+    <div class="form-container">
+        <h1>Форма управления картой</h1>
+        <form id="mapForm" method="post" action="/your-action-url">
+            <!-- Здесь можно добавить другие элементы формы, если необходимо -->
+            <label for="mapName">Название карты:</label>
+            <input type="text" id="mapName" name="mapName" required>
+            <br><br>
+            <input type="submit" value="Отправить">
+        </form>
+    </div>
+
+    <div class="button-container">
+        <button onclick="createWall()">Создать стену</button>
+        <button onclick="createCamera()">Создать камеру</button>
+        <button onclick="createPolygonalWall()">Создать полигональную стену</button>
+        <button onclick="clearMap()">Очистить карту</button>
+        <button onclick="bakeMap()">Расчёт поля зрения камер</button>
+    </div>
+
     <div class="container">
         <main role="main" class="pb-3">
             @RenderBody()
@@ -40,11 +127,176 @@
     <footer class="border-top footer text-muted">
         <div class="container">
             &copy; 2025 - BlindSpots - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            &copy; 2025 - BlindSpots - <a asp-area="" asp-controller="Map" asp-action="GetMap">Editor</a>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+
+
+    <div id="canvasArea" style="position:relative; width:100%; height:400px; border:1px solid #ccc;"></div>
+    <ul id="shapeList"></ul> <!-- Добавляем здесь список для объектов Shape -->
+    <ul id="camList"></ul> <!-- Добавляем здесь список для объектов Camera -->
+    <ul id="fovList"></ul> <!-- Добавляем здесь список для объектов Camera -->
+    <script>
+           document.addEventListener("DOMContentLoaded", function() {
+            const canvasArea = document.getElementById("canvasArea");
+            const createWallButton = document.getElementById("createWallButton");
+                    const shapeList = document.getElementById("shapeList"); // Список объектов Shape
+                            const camList = document.getElementById("camList"); // Список объектов Shape
+                                    const fovList = document.getElementById("fovList"); // Список объектов Shape
+
+
+           
+        });
+           function createWall() {
+                let point1 = null;
+
+            // Установка обработчика клика на canvasArea
+            canvasArea.onclick = function(event) {
+                if (!point1) {
+                    point1 = {
+                        x: event.clientX - canvasArea.getBoundingClientRect().left,
+                        y: event.clientY - canvasArea.getBoundingClientRect().top
+                    };
+ //                   alert("Первая точка выбрана. Теперь нажмите на вторую точку.");
+                } else {
+                    const point2 = {
+                        x: event.clientX - canvasArea.getBoundingClientRect().left,
+                        y: event.clientY - canvasArea.getBoundingClientRect().top
+                    };
+
+                    // Расчёт расстояния и угла
+                    const distance = Math.sqrt(
+                        Math.pow(point2.x - point1.x, 2) + Math.pow(point2.y - point1.y, 2)
+                    );
+
+                            const angle = Math.atan2(point2.y - point1.y, point2.x - point1.x) * (180 / Math.PI);
+                   
+                   const midPoint = {
+                        x: (point1.x + point2.x) / 2,
+                        y: (point1.y + point2.y) / 2
+                    };
+                    // Создание нового элемента изображения
+                    const img = document.createElement("img");
+                    img.src = '/images/wallTexture.png'; // Путь к изображению
+                    img.style.position = 'absolute';
+                    img.style.left = `${midPoint.x - (distance / 2)}px`; // Центрируем изображение
+                    img.style.top = `${midPoint.y - (img.width / 2)}px`; // Учитываем высоту изображения для вертикального выравнивания
+                    img.width = distance; // Устанавливаем длину в соответствии с расстоянием
+                    img.height = 50;
+                    img.style.transform = `rotate(${angle}deg)`; // Угол поворота
+
+                    // Добавление изображения на canvasArea
+                    canvasArea.appendChild(img);
+
+                    // Сброс обработки клика
+                    point1 = null;
+                    point2 = null;
+                    canvasArea.onclick = null;
+                }
+            };
+        };
+           
+
+        function stopAwaiting() {
+          awaiting = false;
+          hint.style.display = 'none';
+          if (docClickHandler) {
+            document.removeEventListener('click', docClickHandler);
+            docClickHandler = null;
+          }
+        }
+
+        function createCamera() {
+                     let point1 = null;
+
+                   // Установка обработчика клика на canvasArea
+                   canvasArea.onclick = function(event) {
+                       if (!point1) {
+                           point1 = {
+                               x: event.clientX - canvasArea.getBoundingClientRect().left,
+                               y: event.clientY - canvasArea.getBoundingClientRect().top
+                           };
+        //                   alert("Первая точка выбрана. Теперь нажмите на вторую точку.");
+                       } else {
+                            point2 = {
+                               x: event.clientX - canvasArea.getBoundingClientRect().left,
+                               y: event.clientY - canvasArea.getBoundingClientRect().top
+                           };
+
+                           // Расчёт расстояния и угла
+                           const distance = Math.sqrt(
+                               Math.pow(point2.x - point1.x, 2) + Math.pow(point2.y - point1.y, 2)
+                           );
+
+                                   const angle = Math.atan2(point2.y - point1.y, point2.x - point1.x) * (180 / Math.PI);
+
+                          const midPoint = {
+                               x: (point1.x + point2.x) / 2,
+                               y: (point1.y + point2.y) / 2
+                           };
+                           // Создание нового элемента изображения
+                           const img = document.createElement("img");
+                           img.src = '/images/camTexture.png'; // Путь к изображению
+                           img.style.position = 'absolute';
+                           img.style.left = `${midPoint.x - (distance / 2)}px`; // Центрируем изображение
+                           img.style.top = `${midPoint.y - (img.width / 2)}px`; // Учитываем высоту изображения для вертикального выравнивания
+                           img.width = 50; // Устанавливаем длину в соответствии с расстоянием
+                           img.height = 25;
+                           img.style.transform = `rotate(${angle}deg)`; // Угол поворота
+
+                           // Добавление изображения на canvasArea
+                           canvasArea.appendChild(img);
+
+                                    const fieldOfView = prompt("Введите поле зрения камеры (degrees):");
+                                  const shape = {
+                               texture: img.src  // Указываем текстуру
+                     //                  fieldOfView: fieldOfView // Указываем поле зрения
+                           };
+
+                           // Добавление объекта Shape в список
+                           const li = document.createElement("li");
+                           li.textContent = `Shape с текстурой: ${shape.texture}`; // Добавляем текстуру в список
+                           shapeList.appendChild(li);
+
+                           // Сброс обработки клика
+                           point1 = null;
+                           point2 = null;
+                           canvasArea.onclick = null;
+                       }
+                   };
+        }
+
+        function createPolygonalWall() {
+            // Логика создания полигональной стены
+            alert('Создать полигональную стену');
+        }
+
+        function clearMap() {
+                  {
+                   // Удаляем все изображения с canvasArea
+                   while (canvasArea.firstChild) {
+                       canvasArea.removeChild(canvasArea.firstChild);
+                   }
+
+                   // Очищаем список объектов Shape
+                   while (shapeList.firstChild) {
+                       shapeList.removeChild(shapeList.firstChild);
+                   }
+               }
+
+               window.createWall = createWall; // Делаем функцию доступной глобально
+               window.clearMap = clearMap; // Делаем функцию доступной глобально
+
+        }
+
+        function bakeMap() {
+            // Логика загрузки карты из файла
+            alert('Загрузить карту из файла');
+        }
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

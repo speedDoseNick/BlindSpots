@@ -10,5 +10,6 @@ namespace BlindSpots.Models
     public class Shape
     {
         public Point? position { get; set; } = new();
+        public double rotation { get; set; } = new float();
     }
 }
