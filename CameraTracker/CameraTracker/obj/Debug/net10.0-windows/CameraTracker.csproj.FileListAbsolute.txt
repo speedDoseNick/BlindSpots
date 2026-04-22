@@ -1,0 +1,16 @@
+D:\АГТУ\3 курс\Совместный проект\CameraTracker\CameraTracker\obj\Debug\net10.0-windows\CameraTracker.Form1.resources
+D:\АГТУ\3 курс\Совместный проект\CameraTracker\CameraTracker\obj\Debug\net10.0-windows\CameraTracker.csproj.GenerateResource.cache
+D:\АГТУ\3 курс\Совместный проект\CameraTracker\CameraTracker\obj\Debug\net10.0-windows\CameraTracker.GeneratedMSBuildEditorConfig.editorconfig
+D:\АГТУ\3 курс\Совместный проект\CameraTracker\CameraTracker\obj\Debug\net10.0-windows\CameraTracker.AssemblyInfoInputs.cache
+D:\АГТУ\3 курс\Совместный проект\CameraTracker\CameraTracker\obj\Debug\net10.0-windows\CameraTracker.AssemblyInfo.cs
+D:\АГТУ\3 курс\Совместный проект\CameraTracker\CameraTracker\obj\Debug\net10.0-windows\CameraTracker.csproj.CoreCompileInputs.cache
+D:\АГТУ\3 курс\Совместный проект\CameraTracker\CameraTracker\bin\Debug\net10.0-windows\CameraTracker.exe
+D:\АГТУ\3 курс\Совместный проект\CameraTracker\CameraTracker\bin\Debug\net10.0-windows\CameraTracker.deps.json
+D:\АГТУ\3 курс\Совместный проект\CameraTracker\CameraTracker\bin\Debug\net10.0-windows\CameraTracker.runtimeconfig.json
+D:\АГТУ\3 курс\Совместный проект\CameraTracker\CameraTracker\bin\Debug\net10.0-windows\CameraTracker.dll
+D:\АГТУ\3 курс\Совместный проект\CameraTracker\CameraTracker\bin\Debug\net10.0-windows\CameraTracker.pdb
+D:\АГТУ\3 курс\Совместный проект\CameraTracker\CameraTracker\obj\Debug\net10.0-windows\CameraTracker.dll
+D:\АГТУ\3 курс\Совместный проект\CameraTracker\CameraTracker\obj\Debug\net10.0-windows\refint\CameraTracker.dll
+D:\АГТУ\3 курс\Совместный проект\CameraTracker\CameraTracker\obj\Debug\net10.0-windows\CameraTracker.pdb
+D:\АГТУ\3 курс\Совместный проект\CameraTracker\CameraTracker\obj\Debug\net10.0-windows\CameraTracker.genruntimeconfig.cache
+D:\АГТУ\3 курс\Совместный проект\CameraTracker\CameraTracker\obj\Debug\net10.0-windows\ref\CameraTracker.dll
