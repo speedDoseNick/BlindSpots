@@ -89,6 +89,35 @@ namespace CameraTracker
 
             Text = "Редактор фигур";
             Size = new Size(900, 600);
+
+
+            var btnCamera = new Button { Text = "Добавить камеру", Dock = DockStyle.Top, Height = 30 };
+            btnCamera.Click += (s, e) => _canvas.AddShape(new CameraShape
+            {
+                Location = new Point(200, 150),
+                Size = new Size(28, 28),
+                //размер маркера (визуально)
+                FillColor = Color.OrangeRed,
+                Angle = 0f,
+                Radius = 200,
+                Fov = 60f
+            });
+
+
+            Controls.Add(_canvas);
+            Controls.Add(_propertyGrid);
+            Controls.Add(addBtn);
+            Controls.Add(btnCamera);
+            Text = "Редактор фигур";
+            Size = new Size(900, 600);
+
+
+            var btnDrawFovs = new Button { Text = "Отрисовать поля зрения камер", Dock = DockStyle.Top, Height = 30 }; btnDrawFovs.Click += (s, e) => {
+                _canvas.ShowCameraFovs = true;
+                _canvas.Invalidate();
+            };
+            Controls.Add(btnDrawFovs);
+
         }
 
         private void Form1_KeyDown(object? sender, KeyEventArgs e)
