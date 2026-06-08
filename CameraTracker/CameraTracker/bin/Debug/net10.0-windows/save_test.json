@@ -1,0 +1,100 @@
+[
+  {
+    "$type": "triangle",
+    "Location": {
+      "IsEmpty": false,
+      "X": 104,
+      "Y": 83
+    },
+    "Size": {
+      "IsEmpty": false,
+      "Width": 60,
+      "Height": 60
+    },
+    "FillColor": "Transparent",
+    "Angle": 0,
+    "BorderThickness": 2,
+    "BorderColor": "Black"
+  },
+  {
+    "$type": "circle",
+    "Location": {
+      "IsEmpty": false,
+      "X": 206,
+      "Y": 179
+    },
+    "Size": {
+      "IsEmpty": false,
+      "Width": 240,
+      "Height": 135
+    },
+    "FillColor": "Transparent",
+    "Angle": 0,
+    "BorderThickness": 2,
+    "BorderColor": "Black"
+  },
+  {
+    "$type": "triangle",
+    "Location": {
+      "IsEmpty": false,
+      "X": 257,
+      "Y": -13
+    },
+    "Size": {
+      "IsEmpty": false,
+      "Width": 87,
+      "Height": 168
+    },
+    "FillColor": "Transparent",
+    "Angle": 0,
+    "BorderThickness": 2,
+    "BorderColor": "Black"
+  },
+  {
+    "$type": "rect",
+    "Location": {
+      "IsEmpty": false,
+      "X": 255,
+      "Y": 342
+    },
+    "Size": {
+      "IsEmpty": false,
+      "Width": 60,
+      "Height": 60
+    },
+    "FillColor": "Transparent",
+    "Angle": 0,
+    "BorderThickness": 2,
+    "BorderColor": "Black"
+  },
+  {
+    "$type": "polyline",
+    "Points": [
+      {
+        "IsEmpty": false,
+        "X": 75,
+        "Y": 254
+      },
+      {
+        "IsEmpty": false,
+        "X": 156,
+        "Y": 242
+      }
+    ],
+    "BorderThickness": 2,
+    "BorderColor": "Black",
+    "Thickness": 2,
+    "Location": {
+      "IsEmpty": true,
+      "X": 0,
+      "Y": 0
+    },
+    "Size": {
+      "IsEmpty": true,
+      "Width": 0,
+      "Height": 0
+    },
+    "FillColor": "Black",
+    "Angle": 0
+  }
+]

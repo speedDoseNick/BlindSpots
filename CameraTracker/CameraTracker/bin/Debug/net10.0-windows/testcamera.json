@@ -1,0 +1,21 @@
+[
+  {
+    "$type": "camera",
+    "Radius": 222,
+    "Fov": 66,
+    "Location": {
+      "IsEmpty": false,
+      "X": 283,
+      "Y": 248
+    },
+    "Size": {
+      "IsEmpty": false,
+      "Width": 23,
+      "Height": 22
+    },
+    "FillColor": "OrangeRed",
+    "Angle": -0.39209175,
+    "BorderThickness": 1,
+    "BorderColor": "Black"
+  }
+]
