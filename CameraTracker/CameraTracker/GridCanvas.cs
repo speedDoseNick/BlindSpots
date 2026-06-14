@@ -1733,14 +1733,15 @@ namespace CameraTracker
                 return c;
             }   
         }
-        public void RunGeneticOptimize(int generations = 200, int populationSize = 50, float posRange = 50f, float angleRange = 30f, int rayCount = 120, float crossoverRate = 0.7f, float mutationRate = 0.15f, float mutationStdPos = 8f, float mutationStdAngle = 4f, int? randomSeed = null)
+       
+        public void RunGeneticOptimize(int generations = 200, int populationSize = 50, float posRange = 50f, float angleRange = 30f, int rayCount = 120, float crossoverRate = 0.7f, float mutationRate = 0.15f, float mutationStdPos = 8f, float mutationStdAngle = 4f, int? randomSeed = null, float overlapPenalty = 500, float unBoundPenalty = 5)
         {
             var rng = randomSeed.HasValue ? new Random(randomSeed.Value) : new Random(); var cameras = _shapes.OfType<CameraShape>().ToList(); if (cameras.Count == 0) return;
             var originals = cameras.Select(c => (Location: c.Location, Angle: c.Angle)).ToList(); int genePerCam = 3; int geneCount = cameras.Count * genePerCam;
             void ApplyGenesToCameras(GAIndividual ind) { for (int i = 0; i < cameras.Count; i++) { int gi = i * genePerCam; var loc = originals[i].Location; int nx = (int)Math.Round(loc.X + ind.Genes[gi + 0]); int ny = (int)Math.Round(loc.Y + ind.Genes[gi + 1]); cameras[i].Location = new Point(nx, ny); cameras[i].Angle = originals[i].Angle + ind.Genes[gi + 2]; } }
             var population = new List<GAIndividual>(populationSize); for (int p = 0; p < populationSize; p++) { var ind = new GAIndividual(geneCount); for (int i = 0; i < cameras.Count; i++) { int gi = i * genePerCam; ind.Genes[gi + 0] = (float)((rng.NextDouble() * 2.0 - 1.0) * posRange); ind.Genes[gi + 1] = (float)((rng.NextDouble() * 2.0 - 1.0) * posRange); ind.Genes[gi + 2] = (float)((rng.NextDouble() * 2.0 - 1.0) * angleRange); } population.Add(ind); }
-            float Evaluate(GAIndividual ind) { ApplyGenesToCameras(ind); float score = ComputeTotalCoveredArea(rayCount); ind.Fitness = score; return score; }
-            foreach (var ind in population) Evaluate(ind);
+           // float Evaluate(GAIndividual ind) { ApplyGenesToCameras(ind); float score = ComputeTotalCoveredArea(rayCount); ind.Fitness = score; return score; }
+            foreach (var ind in population) Evaluate(ind, overlapPenalty, unBoundPenalty);
             GAIndividual BestOfPopulation() => population.OrderByDescending(i => i.Fitness).First();
             GAIndividual TournamentSelect(int k = 3) { GAIndividual best = null; for (int i = 0; i < k; i++) { var cand = population[rng.Next(population.Count)]; if (best == null || cand.Fitness > best.Fitness) best = cand; } return best.Clone(); }
             (GAIndividual, GAIndividual) Crossover(GAIndividual a, GAIndividual b) { var ca = a.Clone(); var cb = b.Clone(); if (rng.NextDouble() < crossoverRate) { int pt = rng.Next(1, geneCount); for (int i = pt; i < geneCount; i++) { float t = ca.Genes[i]; ca.Genes[i] = cb.Genes[i]; cb.Genes[i] = t; } ca.Fitness = cb.Fitness = float.MinValue; } return (ca, cb); }
@@ -1748,15 +1749,92 @@ namespace CameraTracker
             var bestOverall = BestOfPopulation().Clone(); for (int gen = 0; gen < generations; gen++)
             {
                 var newPop = new List<GAIndividual>(populationSize); var sorted = population.OrderByDescending(i => i.Fitness).ToList();            // elitism: keep top-1 and top-2 (if exist)            newPop.Add(sorted[0].Clone());            if (sorted.Count > 1) newPop.Add(sorted[1].Clone());
-                while (newPop.Count < populationSize) { var parent1 = TournamentSelect(); var parent2 = TournamentSelect(); var (child1, child2) = Crossover(parent1, parent2); Mutate(child1); Mutate(child2); Evaluate(child1); if (newPop.Count < populationSize) newPop.Add(child1); if (newPop.Count < populationSize) { Evaluate(child2); newPop.Add(child2); } }
+                while (newPop.Count < populationSize) { var parent1 = TournamentSelect(); var parent2 = TournamentSelect(); var (child1, child2) = Crossover(parent1, parent2); Mutate(child1); Mutate(child2); Evaluate(child1, overlapPenalty, unBoundPenalty); if (newPop.Count < populationSize) newPop.Add(child1); if (newPop.Count < populationSize) { Evaluate(child2, overlapPenalty, unBoundPenalty); newPop.Add(child2); } }
                 population = newPop; var localBest = BestOfPopulation(); if (localBest.Fitness > bestOverall.Fitness) bestOverall = localBest.Clone(); mutationStdPos *= 0.9995f; mutationStdAngle *= 0.9995f;
             }
             ApplyGenesToCameras(bestOverall); foreach (var cam in cameras) cam.OnUpdated?.Invoke();
+
+            float Evaluate(GAIndividual ind, float ovelapPenaltyMult, float unBoundPenaltyMult)
+            {
+                var simCenters = new List<PointF>(cameras.Count);
+                var simPolygons = new List<List<PointF>>(cameras.Count);
+                var moveBlocked = new bool[cameras.Count];
+
+                for (int camIdx = 0; camIdx < cameras.Count; camIdx++)
+                {
+                    int gi = camIdx * genePerCam;
+                    var orig = originals[camIdx];
+                    float nx = orig.Location.X + ind.Genes[gi + 0];
+                    float ny = orig.Location.Y + ind.Genes[gi + 1];
+                    float nang = orig.Angle + ind.Genes[gi + 2];
+
+                    var center = new PointF(nx + cameras[camIdx].Size.Width / 2f, ny + cameras[camIdx].Size.Height / 2f);
+                    simCenters.Add(center);
+
+                    var poly = ComputeFovPolygonFromParams(center, nang, cameras[camIdx].Fov, cameras[camIdx].Radius, rayCount, cameras[camIdx].Height3d, cameras[camIdx]);
+                    simPolygons.Add(poly);
+
+                    var origCenter = new PointF(orig.Location.X + cameras[camIdx].Size.Width / 2f, orig.Location.Y + cameras[camIdx].Size.Height / 2f);
+                    var dx = center.X - origCenter.X;
+                    var dy = center.Y - origCenter.Y;
+                    var dist = (float)Math.Sqrt(dx * dx + dy * dy);
+                    if (dist > 1e-6f)
+                    {
+                        var dir = new PointF(dx / dist, dy / dist);
+                        bool blocked = false;
+                        foreach (var shape in _shapes)
+                        {
+                            if (ReferenceEquals(shape, cameras[camIdx])) continue;
+                            var d = RayIntersectShapeDistance(origCenter, dir, shape, dist, cameras[camIdx].Height3d, cameras[camIdx].Fov);
+                            if (d >= 0f && d < dist - 1e-3f) { blocked = true; break; }
+                        }
+                        moveBlocked[camIdx] = blocked;
+                    }
+                    else moveBlocked[camIdx] = false;
+                }
+
+                float totalArea = 0f;
+                for (int p = 0; p < simPolygons.Count; p++) totalArea += PolygonAreaFromCenter(simPolygons[p]);
+
+                float overlapPenalty = 0f;
+                for (int a = 0; a < simPolygons.Count; a++)
+                {
+                    var polyA = simPolygons[a];
+                    if (polyA == null || polyA.Count < 3) continue;
+                    for (int b = a + 1; b < simPolygons.Count; b++)
+                    {
+                        var polyB = simPolygons[b];
+                        if (polyB == null || polyB.Count < 3) continue;
+                        int hits = 0;
+                        for (int ka = 1; ka < polyA.Count; ka++) if (PointInPolygon(polyA[ka], polyB)) hits++;
+                        for (int kb = 1; kb < polyB.Count; kb++) if (PointInPolygon(polyB[kb], polyA)) hits++;
+                        int maxSamples = Math.Max(polyA.Count - 1 + polyB.Count - 1, 1);
+                        float frac = (float)hits / maxSamples;
+                        overlapPenalty += frac * frac;
+                    }
+                }
+
+                float movePenalty = 0f;
+                for (int m = 0; m < moveBlocked.Length; m++) if (moveBlocked[m]) movePenalty += 1.0f;
+
+                float weightOverlap = ovelapPenaltyMult * Math.Max(1f, totalArea);
+                float weightMove = Math.Max(1f, totalArea) * unBoundPenaltyMult;
+                float fitness = totalArea - weightOverlap * overlapPenalty - weightMove * movePenalty;
+
+                ind.Fitness = fitness;
+                return fitness;
+            }
+
+
         }
+
         // Box-Muller    private static double NextGaussian(Random rng)    {        double u1 = 1.0 - rng.NextDouble();        double u2 = 1.0 - rng.NextDouble();        return Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);    }
         private static double NextGaussian(Random rng) { double u1 = 1.0 - rng.NextDouble(); double u2 = 1.0 - rng.NextDouble(); return Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2); }
      //   public void AddShape(Shape s) { _shapes.Add(s); s.OnUpdated = () => { /* invalidate canvas */ }; }
         public void ClearShapes() { _shapes.Clear(); }
+        private List<PointF> ComputeFovPolygonFromParams(PointF center, float angleDeg, float fovDeg, int radius, int rayCount, float camHeight3D, CameraShape camToIgnore) { float startAngle = angleDeg - fovDeg / 2f; int rays = Math.Max(4, (int)(rayCount * (fovDeg / 360f))); float step = fovDeg / Math.Max(1, rays); var pts = new List<PointF> { center }; for (int i = 0; i <= rays; i++) { float ang = startAngle + i * step; float rad = ang * (float)Math.PI / 180f; var dir = new PointF((float)Math.Cos(rad), (float)Math.Sin(rad)); float len = (float)Math.Sqrt(dir.X * dir.X + dir.Y * dir.Y); if (len > 1e-6f) { dir.X /= len; dir.Y /= len; } float hitDist = radius; foreach (var shape in _shapes) { if (ReferenceEquals(shape, camToIgnore)) continue; var d = RayIntersectShapeDistance(center, dir, shape, radius, camHeight3D, fovDeg); if (d >= 0 && d < hitDist) hitDist = d; } pts.Add(new PointF(center.X + dir.X * hitDist, center.Y + dir.Y * hitDist)); } return pts; }
+        private bool PointInPolygon(PointF p, List<PointF> poly) { bool inside = false; for (int i = 0, j = poly.Count - 1; i < poly.Count; j = i++) { var pi = poly[i]; var pj = poly[j]; bool intersect = ((pi.Y > p.Y) != (pj.Y > p.Y)) && (p.X < (pj.X - pi.X) * (p.Y - pi.Y) / ((pj.Y - pi.Y) + float.Epsilon) + pi.X); if (intersect) inside = !inside; } return inside; }
+
     }
 
     // =====================================================================
