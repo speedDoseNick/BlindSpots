@@ -1136,216 +1136,254 @@ namespace CameraTracker
             finally { e.Graphics.Restore(state); }
         }
 
+        /*    private void DrawCameraFovWithOcclusion(Graphics g, CameraShape cam)
+            {
+                var cx = cam.Location.X + cam.Size.Width / 2f;
+                var cy = cam.Location.Y + cam.Size.Height / 2f;
+                float startAngle = cam.Angle - cam.Fov / 2f;
+                int rays = Math.Max(4, (int)(RayCount * (cam.Fov / 360f)));
+                float step = cam.Fov / Math.Max(1, rays);
+
+                var pts = new List<PointF> { new PointF(cx, cy) };
+
+                for (int i = 0; i <= rays; i++)
+                {
+                    float ang = startAngle + i * step;
+                    float rad = ang * (float)Math.PI / 180f;
+                    var dir = new PointF((float)Math.Cos(rad), (float)Math.Sin(rad));
+                    // normalize dir
+                    var len = (float)Math.Sqrt(dir.X * dir.X + dir.Y * dir.Y);
+                    if (len > 1e-6f) { dir.X /= len; dir.Y /= len; }
+
+                    float hitDist = cam.Radius;
+                    foreach (var shape in _shapes)
+                    {
+                        if (ReferenceEquals(shape, cam)) continue;
+                        var d = RayIntersectShapeDistance(new PointF(cx, cy), dir, shape, cam.Radius);
+                        if (d >= 0 && d < hitDist) hitDist = d;
+                    }
+
+                    pts.Add(new PointF(cx + dir.X * hitDist, cy + dir.Y * hitDist));
+                }
+
+                if (pts.Count >= 3)
+                {
+                    using var path = new GraphicsPath();
+                    path.AddPolygon(pts.ToArray());
+                    using var brush = new SolidBrush(Color.FromArgb(80, cam.FillColor));
+                    g.FillPath(brush, path);
+                    using var pen = new Pen(Color.FromArgb(160, cam.FillColor), 2);
+                    g.DrawPath(pen, path);
+                }
+            } */
+
+        /*    private void DrawCameraFovWithOcclusion(Graphics g, CameraShape cam)
+            {
+                var cx = cam.Location.X + cam.Size.Width / 2f; var cy = cam.Location.Y + cam.Size.Height / 2f; float startAngle = cam.Angle - cam.Fov / 2f; int rays = Math.Max(4, (int)(RayCount * (cam.Fov / 360f))); float step = cam.Fov / Math.Max(1, rays);
+                var pts = new List<PointF> { new PointF(cx, cy) };
+                for (int i = 0; i <= rays; i++)
+                {
+                    float ang = startAngle + i * step; float rad = ang * (float)Math.PI / 180f; var dir = new PointF((float)Math.Cos(rad), (float)Math.Sin(rad));
+                    var len = (float)Math.Sqrt(dir.X * dir.X + dir.Y * dir.Y); if (len > 1e-6f) { dir.X /= len; dir.Y /= len; }
+                    float hitDist = cam.Radius; foreach (var shape in _shapes) { if (ReferenceEquals(shape, cam)) continue; var d = RayIntersectShapeDistance(new PointF(cx, cy), dir, shape, cam.Radius, cam.Height3d, cam.Fov); if (d >= 0 && d < hitDist) hitDist = d; }
+                    pts.Add(new PointF(cx + dir.X * hitDist, cy + dir.Y * hitDist));
+                }
+                if (pts.Count >= 3) { using var path = new GraphicsPath(); path.AddPolygon(pts.ToArray()); using var brush = new SolidBrush(Color.FromArgb(80, cam.FillColor)); g.FillPath(brush, path); using var pen = new Pen(Color.FromArgb(160, cam.FillColor), 2); g.DrawPath(pen, path); }
+            } */
         private void DrawCameraFovWithOcclusion(Graphics g, CameraShape cam)
         {
-            var cx = cam.Location.X + cam.Size.Width / 2f;
-            var cy = cam.Location.Y + cam.Size.Height / 2f;
-            float startAngle = cam.Angle - cam.Fov / 2f;
-            int rays = Math.Max(4, (int)(RayCount * (cam.Fov / 360f)));
-            float step = cam.Fov / Math.Max(1, rays);
-
-            var pts = new List<PointF> { new PointF(cx, cy) };
-
-            for (int i = 0; i <= rays; i++)
+            var cx = cam.Location.X + cam.Size.Width / 2f; var cy = cam.Location.Y + cam.Size.Height / 2f; float startAngle = cam.Angle - cam.Fov / 2f; int rays = Math.Max(4, (int)(RayCount * (cam.Fov / 360f))); float step = cam.Fov / Math.Max(1, rays);
+            var pts = new List<PointF> { new PointF(cx, cy) }; for (int i = 0; i <= rays; i++)
             {
-                float ang = startAngle + i * step;
-                float rad = ang * (float)Math.PI / 180f;
-                var dir = new PointF((float)Math.Cos(rad), (float)Math.Sin(rad));
-                // normalize dir
-                var len = (float)Math.Sqrt(dir.X * dir.X + dir.Y * dir.Y);
-                if (len > 1e-6f) { dir.X /= len; dir.Y /= len; }
-
-                float hitDist = cam.Radius;
-                foreach (var shape in _shapes)
-                {
-                    if (ReferenceEquals(shape, cam)) continue;
-                    var d = RayIntersectShapeDistance(new PointF(cx, cy), dir, shape, cam.Radius);
-                    if (d >= 0 && d < hitDist) hitDist = d;
-                }
-
+                float ang = startAngle + i * step; float rad = ang * (float)Math.PI / 180f; var dir = new PointF((float)Math.Cos(rad), (float)Math.Sin(rad)); float len = (float)Math.Sqrt(dir.X * dir.X + dir.Y * dir.Y); if (len > 1e-6f) { dir.X /= len; dir.Y /= len; }
+                float hitDist = cam.Radius; foreach (var shape in _shapes) { if (ReferenceEquals(shape, cam)) continue; var d = RayIntersectShapeDistance(new PointF(cx, cy), dir, shape, cam.Radius, cam.Height3d, cam.Fov); if (d >= 0 && d < hitDist) hitDist = d; }
                 pts.Add(new PointF(cx + dir.X * hitDist, cy + dir.Y * hitDist));
             }
-
-            if (pts.Count >= 3)
-            {
-                using var path = new GraphicsPath();
-                path.AddPolygon(pts.ToArray());
-                using var brush = new SolidBrush(Color.FromArgb(80, cam.FillColor));
-                g.FillPath(brush, path);
-                using var pen = new Pen(Color.FromArgb(160, cam.FillColor), 2);
-                g.DrawPath(pen, path);
-            }
+            if (pts.Count >= 3) { using var path = new GraphicsPath(); path.AddPolygon(pts.ToArray()); using var brush = new SolidBrush(Color.FromArgb(80, cam.FillColor)); g.FillPath(brush, path); using var pen = new Pen(Color.FromArgb(160, cam.FillColor), 2); g.DrawPath(pen, path); }
         }
-
-        // returns distance from origin to intersection point along dir (dir normalized), or -1 if no hit within maxDist
-        private float RayIntersectShapeDistance(PointF origin, PointF dir, Shape shape, float maxDist)
+        private List<PointF> ComputeCameraFovPolygon(CameraShape cam, int rayCount)
         {
-            if (shape is RectShape)
+            var cx = cam.Location.X + cam.Size.Width / 2f; var cy = cam.Location.Y + cam.Size.Height / 2f; float startAngle = cam.Angle - cam.Fov / 2f; int rays = Math.Max(4, (int)(rayCount * (cam.Fov / 360f))); float step = cam.Fov / Math.Max(1, rays);
+            var pts = new List<PointF> { new PointF(cx, cy) }; for (int i = 0; i <= rays; i++)
             {
-                var rect = new RectangleF(shape.Location, shape.Size);
-                return RayIntersectRect(origin, dir, rect, maxDist);
+                float ang = startAngle + i * step; float rad = ang * (float)Math.PI / 180f; var dir = new PointF((float)Math.Cos(rad), (float)Math.Sin(rad)); float len = (float)Math.Sqrt(dir.X * dir.X + dir.Y * dir.Y); if (len > 1e-6f) { dir.X /= len; dir.Y /= len; }
+                float hitDist = cam.Radius; foreach (var shape in _shapes) { if (ReferenceEquals(shape, cam)) continue; var d = RayIntersectShapeDistance(new PointF(cx, cy), dir, shape, cam.Radius, cam.Height3d, cam.Fov); if (d >= 0 && d < hitDist) hitDist = d; }
+                pts.Add(new PointF(cx + dir.X * hitDist, cy + dir.Y * hitDist));
             }
-            else if (shape is CircleShape)
-            {
-                float cx = shape.Location.X + shape.Size.Width / 2f;
-                float cy = shape.Location.Y + shape.Size.Height / 2f;
-                float rx = shape.Size.Width / 2f;
-                float ry = shape.Size.Height / 2f;
-                return RayIntersectEllipse(origin, dir, new PointF(cx, cy), rx, ry, maxDist);
-            }
-            else if (shape is TriangleShape triangle)
-            {
-                return RayIntersectTriangle(origin, dir, triangle, maxDist);
-            }
+            return pts;
+        }
+        private float PolygonAreaFromCenter(List<PointF> pts) { if (pts == null || pts.Count < 3) return 0f; var center = pts[0]; double area = 0.0; for (int i = 1; i < pts.Count - 1; i++) { var a = new PointF(pts[i].X - center.X, pts[i].Y - center.Y); var b = new PointF(pts[i + 1].X - center.X, pts[i + 1].Y - center.Y); area += Math.Abs(a.X * b.Y - a.Y * b.X) * 0.5; } return (float)area; }
+        public float ComputeTotalCoveredArea(int rayCount = 180) { float total = 0f; foreach (var s in _shapes) { if (s is CameraShape cam) { var poly = ComputeCameraFovPolygon(cam, rayCount); total += PolygonAreaFromCenter(poly); } } return total; }
+        /* private void DrawCameraFovWithOcclusion(Graphics g, CameraShape cam)
+         {
+             var cx = cam.Location.X + cam.Size.Width / 2f; var cy = cam.Location.Y + cam.Size.Height / 2f; float startAngle = cam.Angle - cam.Fov / 2f; int rays = Math.Max(4, (int)(RayCount * (cam.Fov / 360f))); float step = cam.Fov / Math.Max(1, rays);
+             var pts = new List<PointF> { new PointF(cx, cy) };
+             for (int i = 0; i <= rays; i++)
+             {
+                 float ang = startAngle + i * step; float rad = ang * (float)Math.PI / 180f; var dir = new PointF((float)Math.Cos(rad), (float)Math.Sin(rad));                       var len = (float)Math.Sqrt(dir.X * dir.X + dir.Y * dir.Y);            if (len > 1e-6f) { dir.X /= len; dir.Y /= len; }
+                 float hitDist = cam.Radius; foreach (var shape in _shapes) { if (ReferenceEquals(shape, cam)) continue; var d = RayIntersectShapeDistance(new PointF(cx, cy), dir, shape, cam.Radius, cam.Height3d, cam.Fov); if (d >= 0 && d < hitDist) hitDist = d; }
+                 pts.Add(new PointF(cx + dir.X * hitDist, cy + dir.Y * hitDist));
+             }
+             if (pts.Count >= 3) { using var path = new GraphicsPath(); path.AddPolygon(pts.ToArray()); using var brush = new SolidBrush(Color.FromArgb(80, cam.FillColor)); g.FillPath(brush, path); using var pen = new Pen(Color.FromArgb(160, cam.FillColor), 2); g.DrawPath(pen, path); }
+         }
+          */
+        // returns distance from origin to intersection point along dir (dir normalized), or -1 if no hit within maxDist
+        /*  private float RayIntersectShapeDistance(PointF origin, PointF dir, Shape shape, float maxDist, float camHeight3D, float camFovAngleDeg)
+          {         PointF shapeCenter = new PointF(shape.Location.X + shape.Size.Width / 2f, shape.Location.Y + shape.Size.Height / 2f);        float dx = shapeCenter.X - origin.X;        float dy = shapeCenter.Y - origin.Y;        float horizDist = (float)Math.Sqrt(dx * dx + dy * dy);
+                 if (!IsWithinVerticalFov(camHeight3D, shape.Height3d, horizDist, camFovAngleDeg))            return -1f;
+              if (shape is RectShape) { var rect = new RectangleF(shape.Location, shape.Size); return RayIntersectRect(origin, dir, rect, maxDist); }
+              else if (shape is CircleShape) { float cx = shape.Location.X + shape.Size.Width / 2f; float cy = shape.Location.Y + shape.Size.Height / 2f; float rx = shape.Size.Width / 2f; float ry = shape.Size.Height / 2f; return RayIntersectEllipse(origin, dir, new PointF(cx, cy), rx, ry, maxDist); }
+              else if (shape is TriangleShape triangle) { return RayIntersectTriangle(origin, dir, triangle, maxDist); }
+              else if (shape is PolylineShape polyline)
+              {
+                  float minT = -1f; for (int i = 0; i < polyline.Points.Count - 1; i++)
+                  {
+                      PointF a = polyline.Points[i]; PointF b = polyline.Points[i + 1];
+                      // Более точная вертикальная проверка для сегмента: используем ближайшую точку сегмента к origin                PointF nearest = NearestPointOnSegment(origin, a, b);                float ddx = nearest.X - origin.X;                float ddy = nearest.Y - origin.Y;                float segHorizDist = (float)Math.Sqrt(ddx * ddx + ddy * ddy);                if (!IsWithinVerticalFov(camHeight3D, polyline.Height3D, segHorizDist, camFovAngleDeg))                    continue;
+                      float t = RayIntersectSegment(origin, dir, a, b, polyline.Thickness / 2f, maxDist); if (t >= 0f && (minT == -1f || t < minT)) minT = t;
+                  }
+                  return minT;
+              }
+              return -1f;
+          } */
+
+        private float RayIntersectShapeDistance(PointF origin, PointF dir, Shape shape, float maxDist, float camHeight3D, float camFovAngleDeg)
+        {
+            PointF shapeCenter = new PointF(shape.Location.X + shape.Size.Width / 2f, shape.Location.Y + shape.Size.Height / 2f); float dx = shapeCenter.X - origin.X; float dy = shapeCenter.Y - origin.Y; float horizDist = (float)Math.Sqrt(dx * dx + dy * dy);
+            if (!IsWithinVerticalFov(camHeight3D, shape.Height3d, horizDist, camFovAngleDeg)) return -1f;
+            if (shape is RectShape) { var rect = new RectangleF(shape.Location, shape.Size); return RayIntersectRect(origin, dir, rect, maxDist); }
+            else if (shape is CircleShape) { float cx = shape.Location.X + shape.Size.Width / 2f; float cy = shape.Location.Y + shape.Size.Height / 2f; float rx = shape.Size.Width / 2f; float ry = shape.Size.Height / 2f; return RayIntersectEllipse(origin, dir, new PointF(cx, cy), rx, ry, maxDist); }
+            else if (shape is TriangleShape triangle) { return RayIntersectTriangle(origin, dir, triangle, maxDist); }
             else if (shape is PolylineShape polyline)
             {
-                float minT = -1f;
-
-                // Проходим по всем сегментам полилинии (от точки i до i+1)
-                for (int i = 0; i < polyline.Points.Count - 1; i++)
+                float minT = -1f; for (int i = 0; i < polyline.Points.Count - 1; i++)
                 {
-                    // Получаем координаты начала и конца текущего сегмента
-                    // Point автоматически конвертируется в PointF
-                    PointF a = polyline.Points[i];
-                    PointF b = polyline.Points[i + 1];
-
-                    // Проверяем пересечение луча с этим сегментом
-                    float t = RayIntersectSegment(origin, dir, a, b, polyline.Thickness / 2f, maxDist);
-
-                    // Если пересечение найдено (t >= 0) и оно ближе текущего минимума, обновляем minT
-                    if (t >= 0f && (minT == -1f || t < minT))
-                    {
-                        minT = t;
-                    }
+                    PointF a = polyline.Points[i]; PointF b = polyline.Points[i + 1];
+                    PointF nearest = NearestPointOnSegment(origin, a, b); float ddx = nearest.X - origin.X; float ddy = nearest.Y - origin.Y; float segHorizDist = (float)Math.Sqrt(ddx * ddx + ddy * ddy); if (!IsWithinVerticalFov(camHeight3D, polyline.Height3d, segHorizDist, camFovAngleDeg)) continue;
+                    float t = RayIntersectSegment(origin, dir, a, b, polyline.Thickness / 2f, maxDist); if (t >= 0f && (minT == -1f || t < minT)) minT = t;
                 }
-
                 return minT;
             }
-            return -1;
+            return -1f;
         }
+        private PointF NearestPointOnSegment(PointF p, PointF a, PointF b) { var vx = b.X - a.X; var vy = b.Y - a.Y; var wx = p.X - a.X; var wy = p.Y - a.Y; float len2 = vx * vx + vy * vy; if (len2 <= 1e-9f) return a; float t = (wx * vx + wy * vy) / len2; t = Math.Max(0f, Math.Min(1f, t)); return new PointF(a.X + vx * t, a.Y + vy * t); }
 
-        private float RayIntersectTriangle(PointF origin, PointF dir, TriangleShape triangle, float maxDist)
-        {
-            float minT = -1f;
 
-            // Получаем все 3 вершины треугольника
-            var vertices = triangle.GetVertices().ToList();
-            if (vertices.Count < 3) return -1f;
-
-            // Проверяем пересечение с каждым из 3 рёбер
-            for (int i = 0; i < 3; i++)
-            {
-                PointF a = vertices[i];
-                PointF b = vertices[(i + 1) % 3]; // Следующая вершина (с циклическим переходом)
-
-                float t = RayIntersectSegment(origin, dir, a, b, 0f, maxDist); // 0f - без толщины для рёбер
-
-                if (t >= 0f && (minT == -1f || t < minT))
-                {
-                    minT = t;
-                }
-            }
-
-            return minT;
-        }
+        private float RayIntersectTriangle(PointF origin, PointF dir, TriangleShape triangle, float maxDist) { float minT = -1f; var vertices = triangle.GetVertices().ToList(); if (vertices.Count < 3) return -1f; for (int i = 0; i < 3; i++) { PointF a = vertices[i]; PointF b = vertices[(i + 1) % 3]; float t = RayIntersectSegment(origin, dir, a, b, 0f, maxDist); if (t >= 0f && (minT == -1f || t < minT)) minT = t; } return minT; }
 
         private float RayIntersectRect(PointF origin, PointF dir, RectangleF rect, float maxDist)
         {
-            // slab method
             float tmin = 0f, tmax = maxDist;
-
-            if (Math.Abs(dir.X) < 1e-6f)
-            {
-                if (origin.X < rect.Left || origin.X > rect.Right) return -1;
-            }
-            else
-            {
-                float tx1 = (rect.Left - origin.X) / dir.X;
-                float tx2 = (rect.Right - origin.X) / dir.X;
-                if (tx1 > tx2) (tx1, tx2) = (tx2, tx1);
-                tmin = Math.Max(tmin, tx1);
-                tmax = Math.Min(tmax, tx2);
-                if (tmin > tmax) return -1;
-            }
-
-            if (Math.Abs(dir.Y) < 1e-6f)
-            {
-                if (origin.Y < rect.Top || origin.Y > rect.Bottom) return -1;
-            }
-            else
-            {
-                float ty1 = (rect.Top - origin.Y) / dir.Y;
-                float ty2 = (rect.Bottom - origin.Y) / dir.Y;
-                if (ty1 > ty2) (ty1, ty2) = (ty2, ty1);
-                tmin = Math.Max(tmin, ty1);
-                tmax = Math.Min(tmax, ty2);
-                if (tmin > tmax) return -1;
-            }
-
-            if (tmin < 0f)
-            {
-                if (rect.Contains(origin)) return 0f;
-                if (tmax >= 0f) return tmax <= maxDist ? tmax : -1;
-                return -1;
-            }
-
+            if (Math.Abs(dir.X) < 1e-6f) { if (origin.X < rect.Left || origin.X > rect.Right) return -1; } else { float tx1 = (rect.Left - origin.X) / dir.X; float tx2 = (rect.Right - origin.X) / dir.X; if (tx1 > tx2) (tx1, tx2) = (tx2, tx1); tmin = Math.Max(tmin, tx1); tmax = Math.Min(tmax, tx2); if (tmin > tmax) return -1; }
+            if (Math.Abs(dir.Y) < 1e-6f) { if (origin.Y < rect.Top || origin.Y > rect.Bottom) return -1; } else { float ty1 = (rect.Top - origin.Y) / dir.Y; float ty2 = (rect.Bottom - origin.Y) / dir.Y; if (ty1 > ty2) (ty1, ty2) = (ty2, ty1); tmin = Math.Max(tmin, ty1); tmax = Math.Min(tmax, ty2); if (tmin > tmax) return -1; }
+            if (tmin < 0f) { if (rect.Contains(origin)) return 0f; if (tmax >= 0f) return tmax <= maxDist ? tmax : -1; return -1; }
             return tmin <= maxDist ? tmin : -1;
         }
+        /*  private float RayIntersectTriangle(PointF origin, PointF dir, TriangleShape triangle, float maxDist)
+          {
+              float minT = -1f;
 
+              // Получаем все 3 вершины треугольника
+              var vertices = triangle.GetVertices().ToList();
+              if (vertices.Count < 3) return -1f;
+
+              // Проверяем пересечение с каждым из 3 рёбер
+              for (int i = 0; i < 3; i++)
+              {
+                  PointF a = vertices[i];
+                  PointF b = vertices[(i + 1) % 3]; // Следующая вершина (с циклическим переходом)
+
+                  float t = RayIntersectSegment(origin, dir, a, b, 0f, maxDist); // 0f - без толщины для рёбер
+
+                  if (t >= 0f && (minT == -1f || t < minT))
+                  {
+                      minT = t;
+                  }
+              }
+
+              return minT;
+          }
+          */
+        /*   private float RayIntersectRect(PointF origin, PointF dir, RectangleF rect, float maxDist)
+           {
+               // slab method
+               float tmin = 0f, tmax = maxDist;
+
+               if (Math.Abs(dir.X) < 1e-6f)
+               {
+                   if (origin.X < rect.Left || origin.X > rect.Right) return -1;
+               }
+               else
+               {
+                   float tx1 = (rect.Left - origin.X) / dir.X;
+                   float tx2 = (rect.Right - origin.X) / dir.X;
+                   if (tx1 > tx2) (tx1, tx2) = (tx2, tx1);
+                   tmin = Math.Max(tmin, tx1);
+                   tmax = Math.Min(tmax, tx2);
+                   if (tmin > tmax) return -1;
+               }
+
+               if (Math.Abs(dir.Y) < 1e-6f)
+               {
+                   if (origin.Y < rect.Top || origin.Y > rect.Bottom) return -1;
+               }
+               else
+               {
+                   float ty1 = (rect.Top - origin.Y) / dir.Y;
+                   float ty2 = (rect.Bottom - origin.Y) / dir.Y;
+                   if (ty1 > ty2) (ty1, ty2) = (ty2, ty1);
+                   tmin = Math.Max(tmin, ty1);
+                   tmax = Math.Min(tmax, ty2);
+                   if (tmin > tmax) return -1;
+               }
+
+               if (tmin < 0f)
+               {
+                   if (rect.Contains(origin)) return 0f;
+                   if (tmax >= 0f) return tmax <= maxDist ? tmax : -1;
+                   return -1;
+               }
+
+               return tmin <= maxDist ? tmin : -1;
+           }
+        */
+        /*   private float RayIntersectEllipse(PointF origin, PointF dir, PointF center, float rx, float ry, float maxDist)
+           {
+               // map to unit circle
+               float ox = (origin.X - center.X) / rx;
+               float oy = (origin.Y - center.Y) / ry;
+               float dx = dir.X / rx;
+               float dy = dir.Y / ry;
+
+               float a = dx * dx + dy * dy;
+               float b = 2f * (ox * dx + oy * dy);
+               float c = ox * ox + oy * oy - 1f;
+               if (Math.Abs(a) < 1e-9f) return -1;
+               float disc = b * b - 4f * a * c;
+               if (disc < 0f) return -1;
+               float sqrtD = (float)Math.Sqrt(disc);
+               float t1 = (-b - sqrtD) / (2f * a);
+               float t2 = (-b + sqrtD) / (2f * a);
+               float t = float.MaxValue;
+               if (t1 >= 0f) t = Math.Min(t, t1);
+               if (t2 >= 0f) t = Math.Min(t, t2);
+               if (t == float.MaxValue) return -1;
+               // t is in scaled space; compute world hit point and distance along original dir
+               var hitX = origin.X + dir.X * t;
+               var hitY = origin.Y + dir.Y * t;
+               float dist = (float)Math.Sqrt((hitX - origin.X) * (hitX - origin.X) + (hitY - origin.Y) * (hitY - origin.Y));
+               return dist <= maxDist ? dist : -1;
+           }
+           */
         private float RayIntersectEllipse(PointF origin, PointF dir, PointF center, float rx, float ry, float maxDist)
         {
-            // map to unit circle
-            float ox = (origin.X - center.X) / rx;
-            float oy = (origin.Y - center.Y) / ry;
-            float dx = dir.X / rx;
-            float dy = dir.Y / ry;
-
-            float a = dx * dx + dy * dy;
-            float b = 2f * (ox * dx + oy * dy);
-            float c = ox * ox + oy * oy - 1f;
-            if (Math.Abs(a) < 1e-9f) return -1;
-            float disc = b * b - 4f * a * c;
-            if (disc < 0f) return -1;
-            float sqrtD = (float)Math.Sqrt(disc);
-            float t1 = (-b - sqrtD) / (2f * a);
-            float t2 = (-b + sqrtD) / (2f * a);
-            float t = float.MaxValue;
-            if (t1 >= 0f) t = Math.Min(t, t1);
-            if (t2 >= 0f) t = Math.Min(t, t2);
-            if (t == float.MaxValue) return -1;
-            // t is in scaled space; compute world hit point and distance along original dir
-            var hitX = origin.X + dir.X * t;
-            var hitY = origin.Y + dir.Y * t;
-            float dist = (float)Math.Sqrt((hitX - origin.X) * (hitX - origin.X) + (hitY - origin.Y) * (hitY - origin.Y));
-            return dist <= maxDist ? dist : -1;
+            float ox = (origin.X - center.X) / rx; float oy = (origin.Y - center.Y) / ry; float dx = dir.X / rx; float dy = dir.Y / ry;
+            float a = dx * dx + dy * dy; float b = 2f * (ox * dx + oy * dy); float c = ox * ox + oy * oy - 1f; if (Math.Abs(a) < 1e-9f) return -1; float disc = b * b - 4f * a * c; if (disc < 0f) return -1; float sqrtD = (float)Math.Sqrt(disc); float t1 = (-b - sqrtD) / (2f * a); float t2 = (-b + sqrtD) / (2f * a); float t = float.MaxValue; if (t1 >= 0f) t = Math.Min(t, t1); if (t2 >= 0f) t = Math.Min(t, t2); if (t == float.MaxValue) return -1; var hitX = origin.X + dir.X * t; var hitY = origin.Y + dir.Y * t; float dist = (float)Math.Sqrt((hitX - origin.X) * (hitX - origin.X) + (hitY - origin.Y) * (hitY - origin.Y)); return dist <= maxDist ? dist : -1;
         }
-
         private float RayIntersectSegment(PointF origin, PointF dir, PointF a, PointF b, float thicknessRadius, float maxDist)
         {
-            // check line intersection with segment
-            var v = new PointF(b.X - a.X, b.Y - a.Y);
-            // solve origin + t*dir = a + s*v
-            float det = dir.X * (-v.Y) - dir.Y * (-v.X);
-            if (Math.Abs(det) > 1e-9f)
-            {
-                float dx = a.X - origin.X;
-                float dy = a.Y - origin.Y;
-                float t = (dx * (-v.Y) - dy * (-v.X)) / det;
-                float s = (dir.X * dy - dir.Y * dx) / det;
-                if (t >= 0f && t <= maxDist && s >= 0f && s <= 1f)
-                {
-                    // intersection point lies on segment
-                    return t;
-                }
-            }
-
-            // check caps as circles
-            float da = RayIntersectCircle(origin, dir, a, thicknessRadius, maxDist);
-            float db = RayIntersectCircle(origin, dir, b, thicknessRadius, maxDist);
-            float res = -1f;
-            if (da >= 0f) res = da;
-            if (db >= 0f && (res < 0f || db < res)) res = db;
-            return res;
+            var v = new PointF(b.X - a.X, b.Y - a.Y); float det = dir.X * (-v.Y) - dir.Y * (-v.X); if (Math.Abs(det) > 1e-9f) { float dx = a.X - origin.X; float dy = a.Y - origin.Y; float t = (dx * (-v.Y) - dy * (-v.X)) / det; float s = (dir.X * dy - dir.Y * dx) / det; if (t >= 0f && t <= maxDist && s >= 0f && s <= 1f) { return t; } }
+            float da = RayIntersectCircle(origin, dir, a, thicknessRadius, maxDist); float db = RayIntersectCircle(origin, dir, b, thicknessRadius, maxDist); float res = -1f; if (da >= 0f) res = da; if (db >= 0f && (res < 0f || db < res)) res = db; return res;
         }
 
         private float RayIntersectCircle(PointF origin, PointF dir, PointF center, float radius, float maxDist)
@@ -1356,7 +1394,8 @@ namespace CameraTracker
             float b = 2f * (ox * dir.X + oy * dir.Y);
             float c = ox * ox + oy * oy - radius * radius;
             float disc = b * b - 4f * a * c;
-            if (disc < 0f) return -1f;
+            if (disc < 0f)
+                return -1f;
             float sqrtD = (float)Math.Sqrt(disc);
             float t1 = (-b - sqrtD) / (2f * a);
             float t2 = (-b + sqrtD) / (2f * a);
@@ -1366,6 +1405,52 @@ namespace CameraTracker
             if (t == float.MaxValue) return -1f;
             return t <= maxDist ? t : -1f;
         }
+        /*    private float RayIntersectSegment(PointF origin, PointF dir, PointF a, PointF b, float thicknessRadius, float maxDist)
+            {
+                // check line intersection with segment
+                var v = new PointF(b.X - a.X, b.Y - a.Y);
+                // solve origin + t*dir = a + s*v
+                float det = dir.X * (-v.Y) - dir.Y * (-v.X);
+                if (Math.Abs(det) > 1e-9f)
+                {
+                    float dx = a.X - origin.X;
+                    float dy = a.Y - origin.Y;
+                    float t = (dx * (-v.Y) - dy * (-v.X)) / det;
+                    float s = (dir.X * dy - dir.Y * dx) / det;
+                    if (t >= 0f && t <= maxDist && s >= 0f && s <= 1f)
+                    {
+                        // intersection point lies on segment
+                        return t;
+                    }
+                }
+
+                // check caps as circles
+                float da = RayIntersectCircle(origin, dir, a, thicknessRadius, maxDist);
+                float db = RayIntersectCircle(origin, dir, b, thicknessRadius, maxDist);
+                float res = -1f;
+                if (da >= 0f) res = da;
+                if (db >= 0f && (res < 0f || db < res)) res = db;
+                return res;
+            }
+
+            private float RayIntersectCircle(PointF origin, PointF dir, PointF center, float radius, float maxDist)
+            {
+                float ox = origin.X - center.X;
+                float oy = origin.Y - center.Y;
+                float a = dir.X * dir.X + dir.Y * dir.Y;
+                float b = 2f * (ox * dir.X + oy * dir.Y);
+                float c = ox * ox + oy * oy - radius * radius;
+                float disc = b * b - 4f * a * c;
+                if (disc < 0f) return -1f;
+                float sqrtD = (float)Math.Sqrt(disc);
+                float t1 = (-b - sqrtD) / (2f * a);
+                float t2 = (-b + sqrtD) / (2f * a);
+                float t = float.MaxValue;
+                if (t1 >= 0f) t = Math.Min(t, t1);
+                if (t2 >= 0f) t = Math.Min(t, t2);
+                if (t == float.MaxValue) return -1f;
+                return t <= maxDist ? t : -1f;
+            } */
 
         /// <summary>
         /// Отрисовывает элементы выделения для текущей выделенной фигуры.
@@ -1391,6 +1476,16 @@ namespace CameraTracker
         /// Все координаты передаются в мировых координатах, так как Graphics контекст
         /// уже содержит применённые трансформации (панорамирование и масштаб).
         /// </remarks>
+        private bool IsWithinVerticalFov(float camHeight, float shapeHeight, float horizDist, float camFovAngleDeg)
+        {
+            // если расстояние нулевое — считаем попадает
+            if (horizDist <= 1e-6f) return true;
+            float heightDiff = shapeHeight - camHeight;
+            // максимально допустимая противоположная сторона: tan(fov) * adjacent
+            float maxOpposite = (float)Math.Tan(camFovAngleDeg * Math.PI / 180.0) * horizDist;
+            return Math.Abs(heightDiff) <= maxOpposite + 1e-6f;
+        }
+
         private void DrawSelection(Graphics g)
         {
             if (SelectedShape == null) return;
@@ -1619,6 +1714,49 @@ namespace CameraTracker
         /// Возвращает float для совместимости с пороговыми сравнениями в коде привязки.
         /// </remarks>
         private float Distance(Point p1, Point p2) => (float)Math.Sqrt(Math.Pow(p1.X - p2.X, 2) + Math.Pow(p1.Y - p2.Y, 2));
+
+
+
+        private class GAIndividual
+        {
+            public float[] Genes; 
+            public float Fitness;       
+            public GAIndividual(int geneCount) 
+            { Genes = new float[geneCount]; 
+                Fitness = float.MinValue;
+            }
+            public GAIndividual Clone()
+            {
+                var c = new GAIndividual(Genes.Length);
+                Array.Copy(Genes, c.Genes, Genes.Length);
+                c.Fitness = Fitness;
+                return c;
+            }   
+        }
+        public void RunGeneticOptimize(int generations = 200, int populationSize = 50, float posRange = 50f, float angleRange = 30f, int rayCount = 120, float crossoverRate = 0.7f, float mutationRate = 0.15f, float mutationStdPos = 8f, float mutationStdAngle = 4f, int? randomSeed = null)
+        {
+            var rng = randomSeed.HasValue ? new Random(randomSeed.Value) : new Random(); var cameras = _shapes.OfType<CameraShape>().ToList(); if (cameras.Count == 0) return;
+            var originals = cameras.Select(c => (Location: c.Location, Angle: c.Angle)).ToList(); int genePerCam = 3; int geneCount = cameras.Count * genePerCam;
+            void ApplyGenesToCameras(GAIndividual ind) { for (int i = 0; i < cameras.Count; i++) { int gi = i * genePerCam; var loc = originals[i].Location; int nx = (int)Math.Round(loc.X + ind.Genes[gi + 0]); int ny = (int)Math.Round(loc.Y + ind.Genes[gi + 1]); cameras[i].Location = new Point(nx, ny); cameras[i].Angle = originals[i].Angle + ind.Genes[gi + 2]; } }
+            var population = new List<GAIndividual>(populationSize); for (int p = 0; p < populationSize; p++) { var ind = new GAIndividual(geneCount); for (int i = 0; i < cameras.Count; i++) { int gi = i * genePerCam; ind.Genes[gi + 0] = (float)((rng.NextDouble() * 2.0 - 1.0) * posRange); ind.Genes[gi + 1] = (float)((rng.NextDouble() * 2.0 - 1.0) * posRange); ind.Genes[gi + 2] = (float)((rng.NextDouble() * 2.0 - 1.0) * angleRange); } population.Add(ind); }
+            float Evaluate(GAIndividual ind) { ApplyGenesToCameras(ind); float score = ComputeTotalCoveredArea(rayCount); ind.Fitness = score; return score; }
+            foreach (var ind in population) Evaluate(ind);
+            GAIndividual BestOfPopulation() => population.OrderByDescending(i => i.Fitness).First();
+            GAIndividual TournamentSelect(int k = 3) { GAIndividual best = null; for (int i = 0; i < k; i++) { var cand = population[rng.Next(population.Count)]; if (best == null || cand.Fitness > best.Fitness) best = cand; } return best.Clone(); }
+            (GAIndividual, GAIndividual) Crossover(GAIndividual a, GAIndividual b) { var ca = a.Clone(); var cb = b.Clone(); if (rng.NextDouble() < crossoverRate) { int pt = rng.Next(1, geneCount); for (int i = pt; i < geneCount; i++) { float t = ca.Genes[i]; ca.Genes[i] = cb.Genes[i]; cb.Genes[i] = t; } ca.Fitness = cb.Fitness = float.MinValue; } return (ca, cb); }
+            void Mutate(GAIndividual ind) { for (int i = 0; i < cameras.Count; i++) { int gi = i * genePerCam; if (rng.NextDouble() < mutationRate) ind.Genes[gi + 0] += (float)(NextGaussian(rng) * mutationStdPos); if (rng.NextDouble() < mutationRate) ind.Genes[gi + 1] += (float)(NextGaussian(rng) * mutationStdPos); if (rng.NextDouble() < mutationRate) ind.Genes[gi + 2] += (float)(NextGaussian(rng) * mutationStdAngle); ind.Genes[gi + 0] = Math.Max(-posRange, Math.Min(posRange, ind.Genes[gi + 0])); ind.Genes[gi + 1] = Math.Max(-posRange, Math.Min(posRange, ind.Genes[gi + 1])); ind.Genes[gi + 2] = Math.Max(-angleRange, Math.Min(angleRange, ind.Genes[gi + 2])); } ind.Fitness = float.MinValue; }
+            var bestOverall = BestOfPopulation().Clone(); for (int gen = 0; gen < generations; gen++)
+            {
+                var newPop = new List<GAIndividual>(populationSize); var sorted = population.OrderByDescending(i => i.Fitness).ToList();            // elitism: keep top-1 and top-2 (if exist)            newPop.Add(sorted[0].Clone());            if (sorted.Count > 1) newPop.Add(sorted[1].Clone());
+                while (newPop.Count < populationSize) { var parent1 = TournamentSelect(); var parent2 = TournamentSelect(); var (child1, child2) = Crossover(parent1, parent2); Mutate(child1); Mutate(child2); Evaluate(child1); if (newPop.Count < populationSize) newPop.Add(child1); if (newPop.Count < populationSize) { Evaluate(child2); newPop.Add(child2); } }
+                population = newPop; var localBest = BestOfPopulation(); if (localBest.Fitness > bestOverall.Fitness) bestOverall = localBest.Clone(); mutationStdPos *= 0.9995f; mutationStdAngle *= 0.9995f;
+            }
+            ApplyGenesToCameras(bestOverall); foreach (var cam in cameras) cam.OnUpdated?.Invoke();
+        }
+        // Box-Muller    private static double NextGaussian(Random rng)    {        double u1 = 1.0 - rng.NextDouble();        double u2 = 1.0 - rng.NextDouble();        return Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);    }
+        private static double NextGaussian(Random rng) { double u1 = 1.0 - rng.NextDouble(); double u2 = 1.0 - rng.NextDouble(); return Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2); }
+     //   public void AddShape(Shape s) { _shapes.Add(s); s.OnUpdated = () => { /* invalidate canvas */ }; }
+        public void ClearShapes() { _shapes.Clear(); }
     }
 
     // =====================================================================
@@ -1665,4 +1803,10 @@ namespace CameraTracker
             writer.WriteStringValue(ColorTranslator.ToHtml(value));
         }
     }
+
+
+
+
+
+
 }

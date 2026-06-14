@@ -1,5 +1,9 @@
+using Microsoft.VisualBasic;
 using System;
 using System.Drawing;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 using System.Windows.Forms;
 
 namespace CameraTracker
@@ -209,7 +213,43 @@ namespace CameraTracker
             var btnCenterMap = new ToolStripMenuItem("Вернуться к центру карты");
             btnCenterMap.Click += (s, e) => _canvas.CenterMap();
 
-            cameraMenu.DropDownItems.AddRange(new ToolStripItem[] { btnResetZoom, btnCenterMap });
+            var btnCameraOptimize = new ToolStripMenuItem("Оптимизация покрытия камерами");
+            //   btnCameraOptimize.Click += (s, e) => _canvas.RunGeneticOptimize(posRange:125, angleRange:180, rayCount:360);
+            btnCameraOptimize.Click += async (s, e) => {
+            try
+            {      
+                    string sG = Interaction.InputBox("Поколений:", "Оптимизация", "200");      
+                    if (string.IsNullOrWhiteSpace(sG)) { MessageBox.Show("Отменено."); return; }  
+                    string sP = Interaction.InputBox("Размер популяции:", "Оптимизация", "50");      
+                    if (string.IsNullOrWhiteSpace(sP)) { MessageBox.Show("Отменено."); return; }       
+                    string sPos = Interaction.InputBox("Диапазон смещения (px):", "Оптимизация", "125");       
+                    if (string.IsNullOrWhiteSpace(sPos)) { MessageBox.Show("Отменено."); return; }      
+                    string sAng = Interaction.InputBox("Диапазон угла (deg):", "Оптимизация", "180");      
+                    if (string.IsNullOrWhiteSpace(sAng)) { MessageBox.Show("Отменено."); return; }     
+                    string sRays = Interaction.InputBox("Количество лучей:", "Оптимизация", "360");      
+                    if (string.IsNullOrWhiteSpace(sRays)) { MessageBox.Show("Отменено."); return; }
+                if (!int.TryParse(sG, out int generations)) { MessageBox.Show("Неверное число поколений."); return; }
+                if (!int.TryParse(sP, out int population)) { MessageBox.Show("Неверный размер популяции."); return; }
+                if (!float.TryParse(sPos, out float posRange)) { MessageBox.Show("Неверный диапазон смещения."); return; }
+                if (!float.TryParse(sAng, out float angleRange)) { MessageBox.Show("Неверный диапазон угла."); return; }
+                if (!int.TryParse(sRays, out int rayCount)) { MessageBox.Show("Неверное количество лучей."); return; }
+                if (_canvas == null) { MessageBox.Show("Canvas не задан."); return; }
+                      bool hasCams = false;      
+                    _canvas.Invoke(() => hasCams = _canvas.Controls.OfType<Control>().Any() ? false : true); 
+                   
+                    MessageBox.Show("Оптимизация запущена в фоне. Подождите.", "Оптимизация", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    Exception? runEx = null;        await Task.Run(() =>        {            try            {                _canvas.RunGeneticOptimize(                    generations: generations,                    populationSize: population,                    posRange: posRange,                    angleRange: angleRange,                    rayCount: rayCount);            }            catch (Exception ex)            {                runEx = ex;            }        });
+                if (runEx != null) { MessageBox.Show($"Ошибка во время оптимизации:\n{runEx.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
+               if (!_canvas.IsDisposed)     
+                    {            _canvas.Invoke(() =>            
+                    {                _canvas.Invalidate();      
+                        MessageBox.Show("Оптимизация завершена.", "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);   
+                    });        }    }    catch (Exception ex)    {      
+                    MessageBox.Show($"Внутренняя ошибка: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);  
+                }};
+
+
+                cameraMenu.DropDownItems.AddRange(new ToolStripItem[] { btnResetZoom, btnCenterMap, btnCameraOptimize });
             menuStrip.Items.Add(cameraMenu);
 
             // -----------------------------------------------------------------

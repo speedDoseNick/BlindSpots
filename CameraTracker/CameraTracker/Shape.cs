@@ -55,7 +55,7 @@ namespace CameraTracker
         /// обёртка Color с локализованным отображением.
         /// </remarks>
         [Browsable(false)]
-        public Color FillColor { get; set; } = Color.Transparent;
+        public Color FillColor { get; set; } = Color.Black;
 
         /// <summary>
         /// Угол поворота фигуры в градусах относительно центра.
@@ -66,6 +66,9 @@ namespace CameraTracker
         /// </remarks>
         [Category("Трансформация"), DisplayName("Угол")]
         public float Angle { get; set; } = 0;
+
+        [Category("Трансформация"), DisplayName("Высота(3D)")]
+        public float Height3d { get; set; } = 0f;
 
         private float _borderThickness = 2f;
 
