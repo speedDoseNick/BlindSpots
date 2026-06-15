@@ -216,47 +216,21 @@ namespace CameraTracker
             var btnCameraOptimize = new ToolStripMenuItem("Оптимизация покрытия камерами");
             //   btnCameraOptimize.Click += (s, e) => _canvas.RunGeneticOptimize(posRange:125, angleRange:180, rayCount:360);
             btnCameraOptimize.Click += async (s, e) => {
-            try
-            {      
-                    string sG = Interaction.InputBox("Поколений:", "Оптимизация", "200");      
-                    if (string.IsNullOrWhiteSpace(sG)) { MessageBox.Show("Отменено."); return; }  
-                    string sP = Interaction.InputBox("Размер популяции:", "Оптимизация", "50");      
-                    if (string.IsNullOrWhiteSpace(sP)) { MessageBox.Show("Отменено."); return; }       
-                    string sPos = Interaction.InputBox("Диапазон смещения (px):", "Оптимизация", "125");       
-                    if (string.IsNullOrWhiteSpace(sPos)) { MessageBox.Show("Отменено."); return; }      
-                    string sAng = Interaction.InputBox("Диапазон угла (deg):", "Оптимизация", "180");      
-                    if (string.IsNullOrWhiteSpace(sAng)) { MessageBox.Show("Отменено."); return; }     
-                    string sRays = Interaction.InputBox("Количество лучей:", "Оптимизация", "360");
-                    if (string.IsNullOrWhiteSpace(sRays)) { MessageBox.Show("Отменено."); return; }
-                    string sOvelapPenalty = Interaction.InputBox("штраф за пересечение полей зрения камер:", "Оптимизация", "500");
-                    if (string.IsNullOrWhiteSpace(sAng)) { MessageBox.Show("Отменено."); return; }
-                    string sUnBoundPenalty = Interaction.InputBox("штраф за пересечение камерами границ помещения:", "Оптимизация", "5");
-                    if (string.IsNullOrWhiteSpace(sAng)) { MessageBox.Show("Отменено."); return; }
-
-                    if (!int.TryParse(sG, out int generations)) { MessageBox.Show("Неверное число поколений."); return; }
-                if (!int.TryParse(sP, out int population)) { MessageBox.Show("Неверный размер популяции."); return; }
-                if (!float.TryParse(sPos, out float posRange)) { MessageBox.Show("Неверный диапазон смещения."); return; }
-                if (!float.TryParse(sAng, out float angleRange)) { MessageBox.Show("Неверный диапазон угла."); return; }
-                if (!int.TryParse(sRays, out int rayCount)) { MessageBox.Show("Неверное количество лучей."); return; }
-                    if (!int.TryParse(sOvelapPenalty, out int parsedOvelapPenalty)) { MessageBox.Show("Неверное значение штрафа за пересечение полей зрения."); return; }
-                    if (!int.TryParse(sUnBoundPenalty, out int parsedUnBoundPenalty)) { MessageBox.Show("Неверное значение штрафа за пересечение границ помещения."); return; }
+                try
+                {
+                    using var form = new OptimizeForm(); var dr = form.ShowDialog(this); // this — ваша основная форма        if (dr != DialogResult.OK) { MessageBox.Show("Отменено."); return; }
+                    int generations = form.Generations; int population = form.Population; float posRange = form.PosRange; float angleRange = form.AngleRange; int rayCount = form.RayCount; int parsedOverlapPenalty = form.OverlapPenalty; int parsedUnBoundPenalty = form.UnBoundPenalty;
                     if (_canvas == null) { MessageBox.Show("Canvas не задан."); return; }
-                      bool hasCams = false;      
-                    _canvas.Invoke(() => hasCams = _canvas.Controls.OfType<Control>().Any() ? false : true); 
-                   
-                    MessageBox.Show("Оптимизация запущена в фоне. Подождите.", "Оптимизация", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    Exception? runEx = null;        await Task.Run(() =>        {            try            {                _canvas.RunGeneticOptimize(                    generations: generations,                    populationSize: population,                    posRange: posRange,                    angleRange: angleRange,                    rayCount: rayCount, overlapPenalty: parsedOvelapPenalty, unBoundPenalty: parsedUnBoundPenalty);            }            catch (Exception ex)            {                runEx = ex;            }        });
-                if (runEx != null) { MessageBox.Show($"Ошибка во время оптимизации:\n{runEx.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
-               if (!_canvas.IsDisposed)     
-                    {            _canvas.Invoke(() =>            
-                    {                _canvas.Invalidate();      
-                        MessageBox.Show("Оптимизация завершена.", "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);   
-                    });        }    }    catch (Exception ex)    {      
-                    MessageBox.Show($"Внутренняя ошибка: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);  
-                }};
+                    bool hasCams = false; _canvas.Invoke(() => hasCams = _canvas.Controls.OfType<Control>().Any());
+                    MessageBox.Show("Оптимизация запущена в фоне. Подождите.", "Оптимизация", MessageBoxButtons.OK, MessageBoxIcon.Information); Exception? runEx = null; await Task.Run(() => { try { _canvas.RunGeneticOptimize(generations: generations, populationSize: population, posRange: posRange, angleRange: angleRange, rayCount: rayCount, overlapPenalty: parsedOverlapPenalty, unBoundPenalty: parsedUnBoundPenalty); } catch (Exception ex) { runEx = ex; } });
+                    if (runEx != null) { MessageBox.Show($"Ошибка во время оптимизации:\n{runEx.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
+                    if (!_canvas.IsDisposed) { _canvas.Invoke(() => { _canvas.Invalidate(); MessageBox.Show("Оптимизация завершена.", "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information); }); }
+                }
+                catch (Exception ex) { MessageBox.Show($"Внутренняя ошибка: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+            };
 
 
-                cameraMenu.DropDownItems.AddRange(new ToolStripItem[] { btnResetZoom, btnCenterMap, btnCameraOptimize });
+            cameraMenu.DropDownItems.AddRange(new ToolStripItem[] { btnResetZoom, btnCenterMap, btnCameraOptimize });
             menuStrip.Items.Add(cameraMenu);
 
             // -----------------------------------------------------------------

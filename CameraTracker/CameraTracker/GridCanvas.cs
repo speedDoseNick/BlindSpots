@@ -35,6 +35,20 @@ namespace CameraTracker
     /// </remarks>
     public partial class GridCanvas : Panel
     {
+        // В классе Canvas (или вашей форме/контроле)
+        private Rectangle? _selectionRect = null;
+        private PointF _selectionStartOffset = new PointF(75, 75);
+        private PointF _selectionEndOffset = new PointF(175, 175);
+
+        // Установка/сброс извне
+        public void SetSelectionRect(Rectangle? rect)
+        {
+            _selectionRect = rect;
+            this.Invalidate();
+        }
+
+  
+
         // =====================================================================
         // Поля данных
         // =====================================================================
@@ -1115,15 +1129,18 @@ namespace CameraTracker
             g.SmoothingMode = SmoothingMode.None;
             try
             {
-                e.Graphics.TranslateTransform(_panX, _panY);
+                // Apply scale first, then translate: корректное соответствие "мировых" координат с экраном.
                 e.Graphics.ScaleTransform(_zoom, _zoom);
+                e.Graphics.TranslateTransform(_panX, _panY);
 
+                // Отрисовка сетки и фигур (каждая фигура рисуется один раз)
                 DrawGrid(e.Graphics);
                 foreach (var s in _shapes) s.Draw(e.Graphics);
+
+                // Отрисовка выделения отдельной фигуры (если есть)
                 if (SelectedShape != null) DrawSelection(e.Graphics);
 
-                foreach (var shape in _shapes)
-                    shape.Draw(g);
+                // Отрисовка FOV камер (антиалиасинг для аккуратности)
                 if (ShowCameraFovs)
                 {
                     var old = g.SmoothingMode;
@@ -1132,9 +1149,47 @@ namespace CameraTracker
                         DrawCameraFovWithOcclusion(g, cam);
                     g.SmoothingMode = old;
                 }
+
+                // Рисуем прямоугольную зону выделения, если установлена.
+                // _selectionRect предполагается в мировых координатах (координаты до пан/зум).
+                if (_selectionRect.HasValue)
+                {
+                    var sel = _selectionRect.Value;
+
+                    // применяем смещения к начальной и конечной точкам
+                    var leftTop = new PointF(sel.Left + _selectionStartOffset.X, sel.Top + _selectionStartOffset.Y);
+                    var rightBottom = new PointF(sel.Right + _selectionEndOffset.X, sel.Bottom + _selectionEndOffset.Y);
+
+                    // нормализуем (на случай, если смещения поменяли порядок)
+                    float x0 = Math.Min(leftTop.X, rightBottom.X);
+                    float y0 = Math.Min(leftTop.Y, rightBottom.Y);
+                    float x1 = Math.Max(leftTop.X, rightBottom.X);
+                    float y1 = Math.Max(leftTop.Y, rightBottom.Y);
+
+                    var adjRect = new RectangleF(x0, y0, x1 - x0, y1 - y0);
+
+                    using (var brush = new SolidBrush(Color.FromArgb(40, Color.Red)))
+                    {
+                        g.FillRectangle(brush, adjRect);
+                    }
+
+                    // Толщина рамки компенсирует масштаб, чтобы выглядеть одинаково на любом зуме.
+                    float penWidth = 2f / Math.Max(0.0001f, _zoom);
+                    using (var pen = new Pen(Color.Red, penWidth))
+                    {
+                        pen.DashStyle = System.Drawing.Drawing2D.DashStyle.Dot;
+                        g.DrawRectangle(pen, Rectangle.Round(adjRect));
+                    }
+                }
             }
-            finally { e.Graphics.Restore(state); }
+            finally
+            {
+                e.Graphics.Restore(state);
+            }
         }
+
+
+
 
         /*    private void DrawCameraFovWithOcclusion(Graphics g, CameraShape cam)
             {
@@ -1733,30 +1788,90 @@ namespace CameraTracker
                 return c;
             }   
         }
-       
         public void RunGeneticOptimize(int generations = 200, int populationSize = 50, float posRange = 50f, float angleRange = 30f, int rayCount = 120, float crossoverRate = 0.7f, float mutationRate = 0.15f, float mutationStdPos = 8f, float mutationStdAngle = 4f, int? randomSeed = null, float overlapPenalty = 500, float unBoundPenalty = 5)
         {
-            var rng = randomSeed.HasValue ? new Random(randomSeed.Value) : new Random(); var cameras = _shapes.OfType<CameraShape>().ToList(); if (cameras.Count == 0) return;
-            var originals = cameras.Select(c => (Location: c.Location, Angle: c.Angle)).ToList(); int genePerCam = 3; int geneCount = cameras.Count * genePerCam;
-            void ApplyGenesToCameras(GAIndividual ind) { for (int i = 0; i < cameras.Count; i++) { int gi = i * genePerCam; var loc = originals[i].Location; int nx = (int)Math.Round(loc.X + ind.Genes[gi + 0]); int ny = (int)Math.Round(loc.Y + ind.Genes[gi + 1]); cameras[i].Location = new Point(nx, ny); cameras[i].Angle = originals[i].Angle + ind.Genes[gi + 2]; } }
-            var population = new List<GAIndividual>(populationSize); for (int p = 0; p < populationSize; p++) { var ind = new GAIndividual(geneCount); for (int i = 0; i < cameras.Count; i++) { int gi = i * genePerCam; ind.Genes[gi + 0] = (float)((rng.NextDouble() * 2.0 - 1.0) * posRange); ind.Genes[gi + 1] = (float)((rng.NextDouble() * 2.0 - 1.0) * posRange); ind.Genes[gi + 2] = (float)((rng.NextDouble() * 2.0 - 1.0) * angleRange); } population.Add(ind); }
-           // float Evaluate(GAIndividual ind) { ApplyGenesToCameras(ind); float score = ComputeTotalCoveredArea(rayCount); ind.Fitness = score; return score; }
-            foreach (var ind in population) Evaluate(ind, overlapPenalty, unBoundPenalty);
-            GAIndividual BestOfPopulation() => population.OrderByDescending(i => i.Fitness).First();
-            GAIndividual TournamentSelect(int k = 3) { GAIndividual best = null; for (int i = 0; i < k; i++) { var cand = population[rng.Next(population.Count)]; if (best == null || cand.Fitness > best.Fitness) best = cand; } return best.Clone(); }
-            (GAIndividual, GAIndividual) Crossover(GAIndividual a, GAIndividual b) { var ca = a.Clone(); var cb = b.Clone(); if (rng.NextDouble() < crossoverRate) { int pt = rng.Next(1, geneCount); for (int i = pt; i < geneCount; i++) { float t = ca.Genes[i]; ca.Genes[i] = cb.Genes[i]; cb.Genes[i] = t; } ca.Fitness = cb.Fitness = float.MinValue; } return (ca, cb); }
-            void Mutate(GAIndividual ind) { for (int i = 0; i < cameras.Count; i++) { int gi = i * genePerCam; if (rng.NextDouble() < mutationRate) ind.Genes[gi + 0] += (float)(NextGaussian(rng) * mutationStdPos); if (rng.NextDouble() < mutationRate) ind.Genes[gi + 1] += (float)(NextGaussian(rng) * mutationStdPos); if (rng.NextDouble() < mutationRate) ind.Genes[gi + 2] += (float)(NextGaussian(rng) * mutationStdAngle); ind.Genes[gi + 0] = Math.Max(-posRange, Math.Min(posRange, ind.Genes[gi + 0])); ind.Genes[gi + 1] = Math.Max(-posRange, Math.Min(posRange, ind.Genes[gi + 1])); ind.Genes[gi + 2] = Math.Max(-angleRange, Math.Min(angleRange, ind.Genes[gi + 2])); } ind.Fitness = float.MinValue; }
-            var bestOverall = BestOfPopulation().Clone(); for (int gen = 0; gen < generations; gen++)
+            // Helper: set selection rect on UI thread (expects SetSelectionRect(Rectangle?) to exist)
+            void SetSelectionRectSafe(Rectangle? rect)
             {
-                var newPop = new List<GAIndividual>(populationSize); var sorted = population.OrderByDescending(i => i.Fitness).ToList();            // elitism: keep top-1 and top-2 (if exist)            newPop.Add(sorted[0].Clone());            if (sorted.Count > 1) newPop.Add(sorted[1].Clone());
-                while (newPop.Count < populationSize) { var parent1 = TournamentSelect(); var parent2 = TournamentSelect(); var (child1, child2) = Crossover(parent1, parent2); Mutate(child1); Mutate(child2); Evaluate(child1, overlapPenalty, unBoundPenalty); if (newPop.Count < populationSize) newPop.Add(child1); if (newPop.Count < populationSize) { Evaluate(child2, overlapPenalty, unBoundPenalty); newPop.Add(child2); } }
-                population = newPop; var localBest = BestOfPopulation(); if (localBest.Fitness > bestOverall.Fitness) bestOverall = localBest.Clone(); mutationStdPos *= 0.9995f; mutationStdAngle *= 0.9995f;
+                try
+                {
+                    if (this.IsHandleCreated)
+                    {
+                        if (this.InvokeRequired) this.Invoke(new Action(() => SetSelectionRect(rect)));
+                        else SetSelectionRect(rect);
+                    }
+                }
+                catch { /* ignore UI errors */ }
             }
-            ApplyGenesToCameras(bestOverall); foreach (var cam in cameras) cam.OnUpdated?.Invoke();
 
+            var rng = randomSeed.HasValue ? new Random(randomSeed.Value) : new Random();
+            var cameras = _shapes.OfType<CameraShape>().ToList();
+            if (cameras.Count == 0) return;
+
+            // --- compute bounding square from all shapes and show selection ---
+            try
+            {
+                float minX = float.MaxValue, minY = float.MaxValue, maxX = float.MinValue, maxY = float.MinValue;
+                foreach (var s in _shapes)
+                {
+                    var loc = s.Location;
+                    minX = Math.Min(minX, loc.X);
+                    minY = Math.Min(minY, loc.Y);
+                    maxX = Math.Max(maxX, loc.X + s.Size.Width);
+                    maxY = Math.Max(maxY, loc.Y + s.Size.Height);
+                }
+
+                if (minX <= maxX && minY <= maxY)
+                {
+                    float w = maxX - minX;
+                    float h = maxY - minY;
+                    float size = Math.Max(w, h);
+                    float cx = (minX + maxX) / 2f;
+                    float cy = (minY + maxY) / 2f;
+                    var left = (int)Math.Round(cx - size / 2f);
+                    var top = (int)Math.Round(cy - size / 2f);
+                    var rect = new Rectangle(left, top, (int)Math.Round(size), (int)Math.Round(size));
+                    SetSelectionRectSafe(rect);
+                }
+            }
+            catch { /* ignore selection errors */ }
+
+            // Save originals for applying genes
+            var originals = cameras.Select(c => (Location: c.Location, Angle: c.Angle)).ToList();
+            int genePerCam = 3;
+            int geneCount = cameras.Count * genePerCam;
+
+            void ApplyGenesToCameras(GAIndividual ind)
+            {
+                for (int i = 0; i < cameras.Count; i++)
+                {
+                    int gi = i * genePerCam;
+                    var loc = originals[i].Location;
+                    int nx = (int)Math.Round(loc.X + ind.Genes[gi + 0]);
+                    int ny = (int)Math.Round(loc.Y + ind.Genes[gi + 1]);
+                    cameras[i].Location = new Point(nx, ny);
+                    cameras[i].Angle = originals[i].Angle + ind.Genes[gi + 2];
+                }
+            }
+
+            // Initialize population
+            var population = new List<GAIndividual>(populationSize);
+            for (int p = 0; p < populationSize; p++)
+            {
+                var ind = new GAIndividual(geneCount);
+                for (int i = 0; i < cameras.Count; i++)
+                {
+                    int gi = i * genePerCam;
+                    ind.Genes[gi + 0] = (float)((rng.NextDouble() * 2.0 - 1.0) * posRange);
+                    ind.Genes[gi + 1] = (float)((rng.NextDouble() * 2.0 - 1.0) * posRange);
+                    ind.Genes[gi + 2] = (float)((rng.NextDouble() * 2.0 - 1.0) * angleRange);
+                }
+                population.Add(ind);
+            }
+
+            // Evaluation function (uses existing helpers: ComputeFovPolygonFromParams, RayIntersectShapeDistance, PolygonAreaFromCenter, PointInPolygon)
             float Evaluate(GAIndividual ind, float ovelapPenaltyMult, float unBoundPenaltyMult)
             {
-                var simCenters = new List<PointF>(cameras.Count);
                 var simPolygons = new List<List<PointF>>(cameras.Count);
                 var moveBlocked = new bool[cameras.Count];
 
@@ -1769,7 +1884,6 @@ namespace CameraTracker
                     float nang = orig.Angle + ind.Genes[gi + 2];
 
                     var center = new PointF(nx + cameras[camIdx].Size.Width / 2f, ny + cameras[camIdx].Size.Height / 2f);
-                    simCenters.Add(center);
 
                     var poly = ComputeFovPolygonFromParams(center, nang, cameras[camIdx].Fov, cameras[camIdx].Radius, rayCount, cameras[camIdx].Height3d, cameras[camIdx]);
                     simPolygons.Add(poly);
@@ -1794,9 +1908,10 @@ namespace CameraTracker
                 }
 
                 float totalArea = 0f;
-                for (int p = 0; p < simPolygons.Count; p++) totalArea += PolygonAreaFromCenter(simPolygons[p]);
+                for (int p = 0; p < simPolygons.Count; p++)
+                    totalArea += PolygonAreaFromCenter(simPolygons[p]);
 
-                float overlapPenalty = 0f;
+                float overlapPen = 0f;
                 for (int a = 0; a < simPolygons.Count; a++)
                 {
                     var polyA = simPolygons[a];
@@ -1810,7 +1925,7 @@ namespace CameraTracker
                         for (int kb = 1; kb < polyB.Count; kb++) if (PointInPolygon(polyB[kb], polyA)) hits++;
                         int maxSamples = Math.Max(polyA.Count - 1 + polyB.Count - 1, 1);
                         float frac = (float)hits / maxSamples;
-                        overlapPenalty += frac * frac;
+                        overlapPen += frac * frac;
                     }
                 }
 
@@ -1819,14 +1934,206 @@ namespace CameraTracker
 
                 float weightOverlap = ovelapPenaltyMult * Math.Max(1f, totalArea);
                 float weightMove = Math.Max(1f, totalArea) * unBoundPenaltyMult;
-                float fitness = totalArea - weightOverlap * overlapPenalty - weightMove * movePenalty;
+                float fitness = totalArea - weightOverlap * overlapPen - weightMove * movePenalty;
 
                 ind.Fitness = fitness;
                 return fitness;
             }
 
+            GAIndividual BestOfPopulation() => population.OrderByDescending(i => i.Fitness).First();
 
+            GAIndividual TournamentSelect(int k = 3)
+            {
+                GAIndividual best = null;
+                for (int i = 0; i < k; i++)
+                {
+                    var cand = population[rng.Next(population.Count)];
+                    if (best == null || cand.Fitness > best.Fitness) best = cand;
+                }
+                return best.Clone();
+            }
+
+            (GAIndividual, GAIndividual) Crossover(GAIndividual a, GAIndividual b)
+            {
+                var ca = a.Clone();
+                var cb = b.Clone();
+                if (rng.NextDouble() < crossoverRate)
+                {
+                    int pt = rng.Next(1, geneCount);
+                    for (int i = pt; i < geneCount; i++)
+                    {
+                        float t = ca.Genes[i];
+                        ca.Genes[i] = cb.Genes[i];
+                        cb.Genes[i] = t;
+                    }
+                    ca.Fitness = cb.Fitness = float.MinValue;
+                }
+                return (ca, cb);
+            }
+
+            void Mutate(GAIndividual ind)
+            {
+                for (int i = 0; i < cameras.Count; i++)
+                {
+                    int gi = i * genePerCam;
+                    if (rng.NextDouble() < mutationRate) ind.Genes[gi + 0] += (float)(NextGaussian(rng) * mutationStdPos);
+                    if (rng.NextDouble() < mutationRate) ind.Genes[gi + 1] += (float)(NextGaussian(rng) * mutationStdPos);
+                    if (rng.NextDouble() < mutationRate) ind.Genes[gi + 2] += (float)(NextGaussian(rng) * mutationStdAngle);
+                    ind.Genes[gi + 0] = Math.Max(-posRange, Math.Min(posRange, ind.Genes[gi + 0]));
+                    ind.Genes[gi + 1] = Math.Max(-posRange, Math.Min(posRange, ind.Genes[gi + 1]));
+                    ind.Genes[gi + 2] = Math.Max(-angleRange, Math.Min(angleRange, ind.Genes[gi + 2]));
+                }
+                ind.Fitness = float.MinValue;
+            }
+
+            // Evaluate initial population
+            foreach (var ind in population) Evaluate(ind, overlapPenalty, unBoundPenalty);
+
+            var bestOverall = BestOfPopulation().Clone();
+
+            try
+            {
+                for (int gen = 0; gen < generations; gen++)
+                {
+                    var newPop = new List<GAIndividual>(populationSize);
+                    var sorted = population.OrderByDescending(i => i.Fitness).ToList();
+
+                    // elitism: keep top-1 and top-2
+                    newPop.Add(sorted[0].Clone());
+                    if (sorted.Count > 1) newPop.Add(sorted[1].Clone());
+
+                    while (newPop.Count < populationSize)
+                    {
+                        var parent1 = TournamentSelect();
+                        var parent2 = TournamentSelect();
+                        var (child1, child2) = Crossover(parent1, parent2);
+                        Mutate(child1);
+                        Mutate(child2);
+                        Evaluate(child1, overlapPenalty, unBoundPenalty);
+                        if (newPop.Count < populationSize) newPop.Add(child1);
+                        if (newPop.Count < populationSize)
+                        {
+                            Evaluate(child2, overlapPenalty, unBoundPenalty);
+                            newPop.Add(child2);
+                        }
+                    }
+
+                    population = newPop;
+                    var localBest = BestOfPopulation();
+                    if (localBest.Fitness > bestOverall.Fitness) bestOverall = localBest.Clone();
+
+                    mutationStdPos *= 0.9995f;
+                    mutationStdAngle *= 0.9995f;
+                }
+
+                // apply best solution
+                ApplyGenesToCameras(bestOverall);
+                foreach (var cam in cameras) cam.OnUpdated?.Invoke();
+            }
+            finally
+            {
+                // always clear selection rectangle when finished (or on exception)
+                SetSelectionRectSafe(null);
+            }
         }
+
+        /*   public void RunGeneticOptimize(int generations = 200, int populationSize = 50, float posRange = 50f, float angleRange = 30f, int rayCount = 120, float crossoverRate = 0.7f, float mutationRate = 0.15f, float mutationStdPos = 8f, float mutationStdAngle = 4f, int? randomSeed = null, float overlapPenalty = 500, float unBoundPenalty = 5)
+           {
+               var rng = randomSeed.HasValue ? new Random(randomSeed.Value) : new Random(); var cameras = _shapes.OfType<CameraShape>().ToList(); if (cameras.Count == 0) return;
+
+
+
+
+               var originals = cameras.Select(c => (Location: c.Location, Angle: c.Angle)).ToList(); int genePerCam = 3; int geneCount = cameras.Count * genePerCam;
+               void ApplyGenesToCameras(GAIndividual ind) { for (int i = 0; i < cameras.Count; i++) { int gi = i * genePerCam; var loc = originals[i].Location; int nx = (int)Math.Round(loc.X + ind.Genes[gi + 0]); int ny = (int)Math.Round(loc.Y + ind.Genes[gi + 1]); cameras[i].Location = new Point(nx, ny); cameras[i].Angle = originals[i].Angle + ind.Genes[gi + 2]; } }
+               var population = new List<GAIndividual>(populationSize); for (int p = 0; p < populationSize; p++) { var ind = new GAIndividual(geneCount); for (int i = 0; i < cameras.Count; i++) { int gi = i * genePerCam; ind.Genes[gi + 0] = (float)((rng.NextDouble() * 2.0 - 1.0) * posRange); ind.Genes[gi + 1] = (float)((rng.NextDouble() * 2.0 - 1.0) * posRange); ind.Genes[gi + 2] = (float)((rng.NextDouble() * 2.0 - 1.0) * angleRange); } population.Add(ind); }
+              // float Evaluate(GAIndividual ind) { ApplyGenesToCameras(ind); float score = ComputeTotalCoveredArea(rayCount); ind.Fitness = score; return score; }
+               foreach (var ind in population) Evaluate(ind, overlapPenalty, unBoundPenalty);
+               GAIndividual BestOfPopulation() => population.OrderByDescending(i => i.Fitness).First();
+               GAIndividual TournamentSelect(int k = 3) { GAIndividual best = null; for (int i = 0; i < k; i++) { var cand = population[rng.Next(population.Count)]; if (best == null || cand.Fitness > best.Fitness) best = cand; } return best.Clone(); }
+               (GAIndividual, GAIndividual) Crossover(GAIndividual a, GAIndividual b) { var ca = a.Clone(); var cb = b.Clone(); if (rng.NextDouble() < crossoverRate) { int pt = rng.Next(1, geneCount); for (int i = pt; i < geneCount; i++) { float t = ca.Genes[i]; ca.Genes[i] = cb.Genes[i]; cb.Genes[i] = t; } ca.Fitness = cb.Fitness = float.MinValue; } return (ca, cb); }
+               void Mutate(GAIndividual ind) { for (int i = 0; i < cameras.Count; i++) { int gi = i * genePerCam; if (rng.NextDouble() < mutationRate) ind.Genes[gi + 0] += (float)(NextGaussian(rng) * mutationStdPos); if (rng.NextDouble() < mutationRate) ind.Genes[gi + 1] += (float)(NextGaussian(rng) * mutationStdPos); if (rng.NextDouble() < mutationRate) ind.Genes[gi + 2] += (float)(NextGaussian(rng) * mutationStdAngle); ind.Genes[gi + 0] = Math.Max(-posRange, Math.Min(posRange, ind.Genes[gi + 0])); ind.Genes[gi + 1] = Math.Max(-posRange, Math.Min(posRange, ind.Genes[gi + 1])); ind.Genes[gi + 2] = Math.Max(-angleRange, Math.Min(angleRange, ind.Genes[gi + 2])); } ind.Fitness = float.MinValue; }
+               var bestOverall = BestOfPopulation().Clone(); for (int gen = 0; gen < generations; gen++)
+               {
+                   var newPop = new List<GAIndividual>(populationSize); var sorted = population.OrderByDescending(i => i.Fitness).ToList();            // elitism: keep top-1 and top-2 (if exist)            newPop.Add(sorted[0].Clone());            if (sorted.Count > 1) newPop.Add(sorted[1].Clone());
+                   while (newPop.Count < populationSize) { var parent1 = TournamentSelect(); var parent2 = TournamentSelect(); var (child1, child2) = Crossover(parent1, parent2); Mutate(child1); Mutate(child2); Evaluate(child1, overlapPenalty, unBoundPenalty); if (newPop.Count < populationSize) newPop.Add(child1); if (newPop.Count < populationSize) { Evaluate(child2, overlapPenalty, unBoundPenalty); newPop.Add(child2); } }
+                   population = newPop; var localBest = BestOfPopulation(); if (localBest.Fitness > bestOverall.Fitness) bestOverall = localBest.Clone(); mutationStdPos *= 0.9995f; mutationStdAngle *= 0.9995f;
+               }
+               ApplyGenesToCameras(bestOverall); foreach (var cam in cameras) cam.OnUpdated?.Invoke();
+
+               float Evaluate(GAIndividual ind, float ovelapPenaltyMult, float unBoundPenaltyMult)
+               {
+                   var simCenters = new List<PointF>(cameras.Count);
+                   var simPolygons = new List<List<PointF>>(cameras.Count);
+                   var moveBlocked = new bool[cameras.Count];
+
+                   for (int camIdx = 0; camIdx < cameras.Count; camIdx++)
+                   {
+                       int gi = camIdx * genePerCam;
+                       var orig = originals[camIdx];
+                       float nx = orig.Location.X + ind.Genes[gi + 0];
+                       float ny = orig.Location.Y + ind.Genes[gi + 1];
+                       float nang = orig.Angle + ind.Genes[gi + 2];
+
+                       var center = new PointF(nx + cameras[camIdx].Size.Width / 2f, ny + cameras[camIdx].Size.Height / 2f);
+                       simCenters.Add(center);
+
+                       var poly = ComputeFovPolygonFromParams(center, nang, cameras[camIdx].Fov, cameras[camIdx].Radius, rayCount, cameras[camIdx].Height3d, cameras[camIdx]);
+                       simPolygons.Add(poly);
+
+                       var origCenter = new PointF(orig.Location.X + cameras[camIdx].Size.Width / 2f, orig.Location.Y + cameras[camIdx].Size.Height / 2f);
+                       var dx = center.X - origCenter.X;
+                       var dy = center.Y - origCenter.Y;
+                       var dist = (float)Math.Sqrt(dx * dx + dy * dy);
+                       if (dist > 1e-6f)
+                       {
+                           var dir = new PointF(dx / dist, dy / dist);
+                           bool blocked = false;
+                           foreach (var shape in _shapes)
+                           {
+                               if (ReferenceEquals(shape, cameras[camIdx])) continue;
+                               var d = RayIntersectShapeDistance(origCenter, dir, shape, dist, cameras[camIdx].Height3d, cameras[camIdx].Fov);
+                               if (d >= 0f && d < dist - 1e-3f) { blocked = true; break; }
+                           }
+                           moveBlocked[camIdx] = blocked;
+                       }
+                       else moveBlocked[camIdx] = false;
+                   }
+
+                   float totalArea = 0f;
+                   for (int p = 0; p < simPolygons.Count; p++) totalArea += PolygonAreaFromCenter(simPolygons[p]);
+
+                   float overlapPenalty = 0f;
+                   for (int a = 0; a < simPolygons.Count; a++)
+                   {
+                       var polyA = simPolygons[a];
+                       if (polyA == null || polyA.Count < 3) continue;
+                       for (int b = a + 1; b < simPolygons.Count; b++)
+                       {
+                           var polyB = simPolygons[b];
+                           if (polyB == null || polyB.Count < 3) continue;
+                           int hits = 0;
+                           for (int ka = 1; ka < polyA.Count; ka++) if (PointInPolygon(polyA[ka], polyB)) hits++;
+                           for (int kb = 1; kb < polyB.Count; kb++) if (PointInPolygon(polyB[kb], polyA)) hits++;
+                           int maxSamples = Math.Max(polyA.Count - 1 + polyB.Count - 1, 1);
+                           float frac = (float)hits / maxSamples;
+                           overlapPenalty += frac * frac;
+                       }
+                   }
+
+                   float movePenalty = 0f;
+                   for (int m = 0; m < moveBlocked.Length; m++) if (moveBlocked[m]) movePenalty += 1.0f;
+
+                   float weightOverlap = ovelapPenaltyMult * Math.Max(1f, totalArea);
+                   float weightMove = Math.Max(1f, totalArea) * unBoundPenaltyMult;
+                   float fitness = totalArea - weightOverlap * overlapPenalty - weightMove * movePenalty;
+
+                   ind.Fitness = fitness;
+                   return fitness;
+               }
+
+
+           } */
 
         // Box-Muller    private static double NextGaussian(Random rng)    {        double u1 = 1.0 - rng.NextDouble();        double u2 = 1.0 - rng.NextDouble();        return Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);    }
         private static double NextGaussian(Random rng) { double u1 = 1.0 - rng.NextDouble(); double u2 = 1.0 - rng.NextDouble(); return Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2); }
