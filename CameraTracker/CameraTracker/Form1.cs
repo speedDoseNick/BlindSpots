@@ -178,10 +178,10 @@ namespace CameraTracker
                 }));
 
             addMenu.DropDownItems.Add("Отрисовать поля зрения камер", null, (s, e) =>
-                {
-                    _canvas.ShowCameraFovs = true;
-                    _canvas.Invalidate();
-                });
+            {
+                _canvas.ShowCameraFovs = true;
+                _canvas.Invalidate();
+            });
 
             menuStrip.Items.Add(addMenu);
 
